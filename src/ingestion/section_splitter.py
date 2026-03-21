@@ -32,15 +32,21 @@ def split_sections(pages: list) -> list:
         start = match.start()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(full_text)
         text = full_text[start:end].strip()
-        title = match.group().strip()
         token_count = len(enc.encode(text))
 
         if token_count < 20:
             continue
 
-        section_id = re.sub(r'\W+', '_', title.lower()).strip('_')
+        # ── FIX: grab the full first line as title ──
+        first_line = text.split('\n')[0].strip()
+        section_title = first_line if first_line else match.group().strip()
 
-        # Find page number — find the LAST boundary that is <= start
+        # Slugify for section_id
+        section_id = re.sub(r'\W+', '_', section_title.lower()).strip('_')
+        # Trim overly long IDs
+        section_id = section_id[:80]
+
+        # Find page number — iterate backwards
         page_num = 1
         for idx in range(len(page_start_chars) - 1, -1, -1):
             if page_start_chars[idx] <= start:
@@ -49,7 +55,7 @@ def split_sections(pages: list) -> list:
 
         sections.append(BillSection(
             section_id=section_id,
-            section_title=title,
+            section_title=section_title,
             section_text=text,
             token_count=token_count,
             page_number=page_num

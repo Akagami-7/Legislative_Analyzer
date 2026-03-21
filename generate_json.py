@@ -23,6 +23,7 @@ def ingest_bill(pdf_path: str) -> dict:
 
     # Step 4 - NER entities
     entities = extract_entities(sections)
+    
     # Step 5 - Build IngestedBill
     bill = IngestedBill(
         bill_id="bharatiya_nyaya_sanhita_2023",
