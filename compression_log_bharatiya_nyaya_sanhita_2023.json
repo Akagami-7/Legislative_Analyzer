@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-03-21T18:15:12.324797",
+  "timestamp": "2026-03-21T18:55:30.362897",
   "bill_id": "bharatiya_nyaya_sanhita_2023",
   "original_tokens": 83617,
   "compressed_tokens": 14925,
@@ -7,5 +7,9 @@
   "cost_naive_usd": 0.2509,
   "cost_compressed_usd": 0.0448,
   "cost_saved_usd": 0.2061,
-  "carbon_saved_grams": 12.32
+  "carbon_saved_grams": 12.32,
+  "codecarbon_measured": true,
+  "actual_emissions_grams": 0.0359,
+  "naive_emissions_grams": 0.0437,
+  "carbon_saved_grams_real": 0.0078
 }
