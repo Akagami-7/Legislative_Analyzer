@@ -1,0 +1,28 @@
+{
+  "bill_id": "bharatiya_nyaya_sanhita_2023",
+  "citizen_summary": "This new law, the Bharatiya Nyaya Sanhita, updates India's criminal justice system by redefining various offenses and punishments. It introduces stricter penalties for crimes against women and children, including specific provisions for sexual assault and exploitation. The Sanhita also addresses organized crime and hate crimes, expanding the scope of criminal liability and punishment for such acts.",
+  "key_changes": [
+    "Introduction of 'Organised Crime' with severe penalties, including death or life imprisonment and high fines, for acts like kidnapping and robbery.",
+    "Stricter punishments for sexual offenses, including death penalty for gang rape of a minor and life imprisonment for repeat offenders, along with a new offense for sexual intercourse by deceitful means (e.g., false promise to marry).",
+    "Specific provision for enhanced punishment for murder or grievous hurt committed by a group of five or more persons based on grounds like race, caste, community, or personal belief (addressing mob lynching).",
+    "Increased protection for children through new and stricter penalties for crimes like kidnapping for begging, selling or buying for prostitution, causing death of an unborn child, and exposure or abandonment.",
+    "The law applies to Indian citizens for offenses committed outside India and includes new provisions related to electoral fraud and public servant accountability."
+  ],
+  "affected_groups": [
+    "All Indian citizens",
+    "Women and children (as victims and in specific offense definitions)",
+    "Victims of sexual offenses",
+    "Persons involved in organised crime",
+    "Marginalized communities (protected against hate crimes/mob lynching)",
+    "Public servants",
+    "Individuals involved in elections (candidates, voters)",
+    "Guardians of children or persons of unsound mind",
+    "Transgender persons (included in definitions)"
+  ],
+  "rights_impact": "The law impacts fundamental rights, particularly the right to life, personal liberty, and privacy, by introducing stricter penalties for crimes, defining new offenses, and providing enhanced protections for vulnerable groups while also expanding the state's power to punish.",
+  "implementation_date": "1st day of July, 2024",
+  "tokens_input": 83617,
+  "tokens_output": 14925,
+  "compression_ratio": 0.8215,
+  "carbon_saved_grams": 12.32
+}
