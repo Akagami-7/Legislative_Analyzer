@@ -94,10 +94,28 @@ def run_pipeline(json_path: str) -> None:
     print(f"   Total tokens : {bill.total_token_count:,}")
 
     # ── 2. BM25 Filter ────────────────────────────────────────
-    filtered = rank_and_filter(bill.sections, keep_ratio=0.7)
+    def get_keep_ratio(section_count: int) -> float:
+        if section_count < 50:
+            return 0.7   # small bill — keep more
+        elif section_count < 200:
+            return 0.5   # medium
+        else:
+            return 0.4   # large bill — filter harder
+
+    keep_ratio = get_keep_ratio(len(bill.sections))
+    filtered = rank_and_filter(bill.sections, keep_ratio=keep_ratio)
 
     # ── 3. Extractive Compress ────────────────────────────────
-    compressed = extractive_compress(filtered, sentences_per_section=4)
+    def get_sentence_budget(total_tokens: int) -> int:
+        if total_tokens < 20000:
+            return 4   # small bill — keep more
+        elif total_tokens < 60000:
+            return 3   # medium bill
+        else:
+            return 2   # large bill — compress harder
+
+    sentence_budget = get_sentence_budget(bill.total_token_count)
+    compressed = extractive_compress(filtered, sentences_per_section=sentence_budget)
 
     # ── 4. Assemble Prompt ────────────────────────────────────
     prompt, prompt_tokens = assemble_prompt(bill, compressed)
