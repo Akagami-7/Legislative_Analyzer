@@ -25,7 +25,6 @@ Return ONLY this JSON, no other text:
 
 TOKEN_CEILING = 15000
 
-
 def build_prompt_text(bill: IngestedBill, sections: List[BillSection]) -> str:
     lines = []
     lines.append(f"BILL ID      : {bill.bill_id}")
@@ -38,7 +37,6 @@ def build_prompt_text(bill: IngestedBill, sections: List[BillSection]) -> str:
         lines.append(section.section_text)
 
     return "\n".join(lines) + TASK_INSTRUCTION
-
 
 def assemble_prompt(
     bill: IngestedBill,
