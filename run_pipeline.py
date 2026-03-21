@@ -125,8 +125,14 @@ def run_pipeline(json_path: str) -> None:
     log_compression(bill.bill_id, bill.total_token_count, prompt_tokens)
 
     # ── 6. Claude API Call ────────────────────────────────────
-    result = analyze_with_gemini(
-        prompt,
+    from src.compression.token_logger import track_pipeline_emissions
+
+    result = track_pipeline_emissions(
+        bill.bill_id,
+        bill.total_token_count,
+        prompt_tokens,
+        analyze_with_gemini,      # function to track
+        prompt,                   # its arguments
         bill.total_token_count,
         prompt_tokens
     )
