@@ -7,6 +7,19 @@ venv/
 .venv/
 *.egg-info/
 .DS_Store
+.pytest_cache/
+
+# Data and Logs
 ingested_bill.json
+ingested_*.json
+compression_log_*.json
+emissions_*.csv
+result_*.json
 *.pdf
-*.json
+
+# Generated output files — never commit these
+result_*.json
+compression_log_*.json
+ingested_*.json
+ingested_bill.json
+emissions_*.csv
