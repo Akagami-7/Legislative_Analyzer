@@ -27,7 +27,7 @@ def ingest_bill(pdf_path: str) -> IngestedBill:
 
     # Step 5 - Build the final object
     return IngestedBill(
-          bill_id="dpdp_act_2023",
+          bill_id="bharatiya_nyaya_sanhita_2023",
           source_url=pdf_path,
           page_count=parsed["page_count"],
           sections=sections,
@@ -37,7 +37,7 @@ def ingest_bill(pdf_path: str) -> IngestedBill:
           )
 
 # Run it
-result = ingest_bill("dpdp_act_2023.pdf")
+result = ingest_bill("bns_2023.pdf")
 
 print(f"✅ Sections found: {len(result.sections)}")
 print(f"✅ Total tokens: {result.total_token_count}")
