@@ -4,11 +4,11 @@ from src.shared_schemas import BillSection
 
 SECTION_PATTERN = re.compile(
     r'(?:^|\n)\s*(?:'
-    r'Section\s+\d+[A-Z]?\.'        # Section 1. Section 33. Section 4A.
-    r'|\d+\.\s+[A-Z]'               # 33. Punishment for... 
-    r'|CHAPTER\s+[IVXLC\d]+'        # CHAPTER III
-    r'|SCHEDULE\s+[IVXLC\d]+'       # SCHEDULE I
-    r'|PART\s+[IVXLCA-Z]+'          # PART A
+    r'Section\s+\d+[A-Z]?\.'
+    r'|\d+\.\s+[A-Z]'
+    r'|CHAPTER\s+[IVXLC\d]+'
+    r'|SCHEDULE\s+[IVXLC\d]+'
+    r'|PART\s+[IVXLCA-Z]+'
     r')',
     re.IGNORECASE | re.MULTILINE
 )
@@ -16,12 +16,13 @@ SECTION_PATTERN = re.compile(
 enc = tiktoken.get_encoding("cl100k_base")
 
 def split_sections(pages: list) -> list:
-    # Track page numbers properly
-    page_boundaries = []
-    running_chars = 0
-    for i, page in enumerate(pages):
-        page_boundaries.append(running_chars)
-        running_chars += len(page) + 1  # +1 for the \n join
+
+    # Build exact char position where each page starts
+    page_start_chars = []
+    cumulative = 0
+    for page in pages:
+        page_start_chars.append(cumulative)
+        cumulative += len(page) + 1  # +1 for \n
 
     full_text = "\n".join(pages)
     matches = list(SECTION_PATTERN.finditer(full_text))
@@ -35,16 +36,15 @@ def split_sections(pages: list) -> list:
         token_count = len(enc.encode(text))
 
         if token_count < 20:
-            continue  # drop noise
+            continue
 
         section_id = re.sub(r'\W+', '_', title.lower()).strip('_')
 
-        # Fix 2 — proper page number tracking
+        # Find page number — find the LAST boundary that is <= start
         page_num = 1
-        for p_idx, boundary in enumerate(page_boundaries):
-            if boundary <= start:
-                page_num = p_idx + 1
-            else:
+        for idx in range(len(page_start_chars) - 1, -1, -1):
+            if page_start_chars[idx] <= start:
+                page_num = idx + 1
                 break
 
         sections.append(BillSection(

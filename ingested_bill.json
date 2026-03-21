@@ -1,5 +1,5 @@
 {
-  "bill_id": "dpdp_act_2023",
+  "bill_id": "bharatiya_nyaya_sanhita_2023",
   "source_url": "bns_2023.pdf",
   "page_count": 112,
   "sections": [
@@ -3072,5 +3072,65 @@
   ],
   "total_token_count": 83617,
   "has_tables": false,
-  "tables": []
+  "tables": [],
+  "entities": {
+    "ministries": [],
+    "acts_referenced": [
+      "Companies Act, 2013",
+      "Navy Act, 1957",
+      "No person subject to the Air Force Act, 1950",
+      "Sites and Remains Act, 1958",
+      "Information Technology Act, 2000",
+      "Dowry Prohibition Act, 1961",
+      "General Clauses Act, 1897",
+      "Coinage Act, 2011",
+      "Commission Act, 2019",
+      "Army Act, 1950",
+      "Technology Act, 2000",
+      "Police Act, 1861",
+      "Provident Funds and Miscellaneous Provisions Act, 1952"
+    ],
+    "dates": [
+      "11th August, 2023",
+      "25th December, 2023",
+      "23rd February, 2024",
+      "9th August, 2023",
+      "10th November, 2023"
+    ],
+    "monetary_amounts": [
+      "fine which may extend to three thousand",
+      "fine of one thousand",
+      "rs,",
+      "fine which may extend to three hundred",
+      "fine which may extend to five thousand",
+      "fine which may extend to twenty thousand",
+      "fine which may extend to one thousand",
+      "fine which may extend to ten thousand",
+      "fine which may extend to two hundred",
+      "fine which may extend to fifty thousand",
+      "fine which may extend to two lakh",
+      "fine which may extend to six hundred",
+      "fine which may extend to two thousand"
+    ],
+    "states": [
+      "Delhi"
+    ],
+    "punishments": [
+      "imprisonment which may extend to seven years",
+      "imprisonment for a term which may extend to one year",
+      "imprisonment for a term which may extend to ten years",
+      "imprisonment which may extend to three years",
+      "Imprisonment for life",
+      "imprisonment which may extend to one year",
+      "imprisonment for a term which may extend to two years",
+      "imprisonment for a term which may extend to three years",
+      "imprisonment which may extend to ten years",
+      "imprisonment for twenty years",
+      "imprisonment for life",
+      "imprisonment for ten years",
+      "imprisonment which may extend to five years",
+      "imprisonment for a term which may extend to seven years",
+      "imprisonment for a term which may extend to fourteen years"
+    ]
+  }
 }
