@@ -9,3 +9,4 @@ venv/
 .DS_Store
 ingested_bill.json
 *.pdf
+*.json
