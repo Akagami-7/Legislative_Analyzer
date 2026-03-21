@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-03-21T15:17:33.972693",
+  "bill_id": "bns_act_2023",
+  "original_tokens": 83617,
+  "compressed_tokens": 14896,
+  "reduction_percent": 82.19,
+  "cost_naive_usd": 0.2509,
+  "cost_compressed_usd": 0.0447,
+  "cost_saved_usd": 0.2062,
+  "carbon_saved_grams": 12.33
+}

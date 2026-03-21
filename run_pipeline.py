@@ -9,6 +9,7 @@ from src.compression.extractor import extractive_compress
 from src.compression.prompt_assembler import assemble_prompt
 from src.compression.token_logger import log_compression
 from src.compression.llm_client import analyze_with_gemini
+from src.compression.translator import translate_result
 import tiktoken
 
 enc = tiktoken.get_encoding("cl100k_base")
@@ -94,10 +95,28 @@ def run_pipeline(json_path: str) -> None:
     print(f"   Total tokens : {bill.total_token_count:,}")
 
     # ── 2. BM25 Filter ────────────────────────────────────────
-    filtered = rank_and_filter(bill.sections, keep_ratio=0.7)
+    def get_keep_ratio(section_count: int) -> float:
+        if section_count < 50:
+            return 0.7   # small bill — keep more
+        elif section_count < 200:
+            return 0.5   # medium
+        else:
+            return 0.4   # large bill — filter harder
+
+    keep_ratio = get_keep_ratio(len(bill.sections))
+    filtered = rank_and_filter(bill.sections, keep_ratio=keep_ratio)
 
     # ── 3. Extractive Compress ────────────────────────────────
-    compressed = extractive_compress(filtered, sentences_per_section=4)
+    def get_sentence_budget(total_tokens: int) -> int:
+        if total_tokens < 20000:
+            return 4   # small bill — keep more
+        elif total_tokens < 60000:
+            return 3   # medium bill
+        else:
+            return 2   # large bill — compress harder
+
+    sentence_budget = get_sentence_budget(bill.total_token_count)
+    compressed = extractive_compress(filtered, sentences_per_section=sentence_budget)
 
     # ── 4. Assemble Prompt ────────────────────────────────────
     prompt, prompt_tokens = assemble_prompt(bill, compressed)
@@ -128,6 +147,17 @@ def run_pipeline(json_path: str) -> None:
     print(f"\n⚖️  Rights Impact: {result.rights_impact}")
     print(f"\n📅 Implementation: {result.implementation_date}")
     print(f"\n💾 Full result saved to: {output_path}")
+
+    # ── 9. Translate to Hindi (v1.0 demo) ────────────────────
+    hindi_result = translate_result(result, target_lang="hi")
+
+    hindi_path = f"result_{bill.bill_id}_hindi.json"
+    with open(hindi_path, "w", encoding="utf-8") as f:
+        json.dump(hindi_result, f, ensure_ascii=False, indent=2)
+
+    print(f"\n🇮🇳 Hindi translation saved to: {hindi_path}")
+    print(f"\n📋 Hindi Summary:")
+    print(f"   {hindi_result['citizen_summary']}")
 
 if __name__ == "__main__":
     run_pipeline("ingested_bill.json")
