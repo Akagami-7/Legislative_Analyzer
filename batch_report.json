@@ -3,6 +3,7 @@
     "rti_act_2005",
     "consumer_protection_act_2019",
     "forest_rights_act_2006",
+<<<<<<< HEAD
     "land_acquisition_act_2013",
     "code_on_wages_2019",
     "national_medical_commission_2019",
@@ -15,6 +16,19 @@
     "it_act_2000",
     "environment_protection_act_1986",
     "posh_act_2013"
+=======
+    "code_on_wages_2019",
+    "industrial_relations_code_2020",
+    "national_medical_commission_2019",
+    "bharatiya_nagarik_suraksha_2023",
+    "bharatiya_sakshya_adhiniyam_2023",
+    "telecommunications_act_2023",
+    "it_act_2000",
+    "right_to_education_act_2009",
+    "persons_with_disabilities_act_2016",
+    "jan_vishwas_act_2023",
+    "competition_act_2002"
+>>>>>>> e78cbec56ebe35467a3723ad072f276eca27f141
   ],
   "failed": []
 }

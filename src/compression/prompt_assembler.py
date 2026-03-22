@@ -38,31 +38,33 @@ def build_prompt_text(bill: IngestedBill, sections: List[BillSection]) -> str:
 
     return "\n".join(lines) + TASK_INSTRUCTION
 
-def assemble_prompt(
-    bill: IngestedBill,
-    compressed_sections: List[BillSection]
-) -> Tuple[str, int]:
+def assemble_prompt(bill: IngestedBill,
+                    compressed_sections: List[BillSection],
+                    rag_context: str = "") -> Tuple[str, int]:
 
-    full_prompt = build_prompt_text(bill, compressed_sections)
+    lines = []
+    lines.append(f"BILL ID      : {bill.bill_id}")
+    lines.append(f"SOURCE       : {bill.source_url}")
+    lines.append(f"ORIGINAL SIZE: {bill.total_token_count:,} tokens")
+    lines.append("=" * 60)
+
+    # Inject RAG context if available
+    if rag_context:
+        lines.append("\n" + rag_context)
+        lines.append("=" * 60)
+
+    for section in compressed_sections:
+        lines.append(f"\n[{section.section_title.upper()}]")
+        lines.append(section.section_text)
+
+    context = "\n".join(lines)
+    full_prompt = context + TASK_INSTRUCTION
     token_count = len(enc.encode(full_prompt))
 
     print(f"\n📝 Prompt assembled:")
     print(f"   Prompt tokens     : {token_count:,}")
     print(f"   Original tokens   : {bill.total_token_count:,}")
     print(f"   Compression ratio : "
-          f"{(1 - token_count / bill.total_token_count) * 100:.1f}%")
-
-    # Enforce token ceiling
-    if token_count > TOKEN_CEILING:
-        print(f"⚠️  Prompt exceeds ceiling ({token_count:,} > {TOKEN_CEILING:,})")
-        print(f"   Trimming lowest-scoring sections...")
-
-        # Trim from end (assumes already sorted by relevance)
-        while token_count > TOKEN_CEILING and len(compressed_sections) > 5:
-            compressed_sections = compressed_sections[:-1]
-            full_prompt = build_prompt_text(bill, compressed_sections)
-            token_count = len(enc.encode(full_prompt))
-
-        print(f"   Final prompt: {token_count:,} tokens after trimming")
+          f"{(1 - token_count/bill.total_token_count)*100:.1f}%")
 
     return full_prompt, token_count
