@@ -11,6 +11,8 @@ from src.compression.prompt_assembler import assemble_prompt
 from src.compression.token_logger import log_compression
 from src.compression.llm_client import analyze_with_gemini
 from src.compression.translator import translate_result
+from src.compression.rag_embedder import embed_bill, get_collection_stats
+from src.compression.rag_retriever import retrieve_context, format_rag_context
 import tiktoken
 
 enc = tiktoken.get_encoding("cl100k_base")
@@ -119,8 +121,22 @@ def run_pipeline(json_path: str) -> None:
     sentence_budget = get_sentence_budget(bill.total_token_count)
     compressed = extractive_compress(filtered, sentences_per_section=sentence_budget)
 
+    # ── 3.5 RAG Context Retrieval ────────────────────────────
+    print(f"\n🔍 Retrieving RAG context...")
+    civic_query = (
+        f"{bill.bill_id} citizen rights penalty obligations "
+        f"enforcement consent data protection"
+    )
+    retrieved   = retrieve_context(
+        query=civic_query,
+        current_bill_id=bill.bill_id,
+        top_k=5,
+        use_reranker=True
+    )
+    rag_context = format_rag_context(retrieved, max_tokens=2000)
+
     # ── 4. Assemble Prompt ────────────────────────────────────
-    prompt, prompt_tokens = assemble_prompt(bill, compressed)
+    prompt, prompt_tokens = assemble_prompt(bill, compressed, rag_context)
 
     # ── 5. Log Compression ────────────────────────────────────
     log_compression(bill.bill_id, bill.total_token_count, prompt_tokens)
