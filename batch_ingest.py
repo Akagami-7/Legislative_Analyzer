@@ -6,6 +6,13 @@ import traceback
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+# ── Fix poppler PATH for Windows ───────────────────
+os.environ["PATH"] += (
+    r";C:\Users\User\AppData\Local\Microsoft\WinGet\Packages"
+    r"\oschwartz10612.Poppler_Microsoft.Winget.Source_8wekyb3d8bbwe"
+    r"\poppler-25.07.0\Library\bin"
+)
+
 from src.ingestion.pdf_parser import parse_pdf
 from src.ingestion.ocr_engine import run_ocr
 from src.ingestion.section_splitter import split_sections
@@ -13,27 +20,34 @@ from src.ingestion.ner_pipeline import extract_entities
 from src.ingestion.scraper import scrape_bill
 from src.shared_schemas import IngestedBill
 
-# ── Output folder ──────────────────────────────────
 OUTPUT_DIR = "ingested_bills"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# ── All 15 bills ───────────────────────────────────
 BILLS = [
-    {"name": "rti_act_2005",                     "search": "RTI Act 2005"},
-    {"name": "consumer_protection_act_2019",      "search": "Consumer Protection Act 2019"},
-    {"name": "forest_rights_act_2006",            "search": "Forest Rights Act 2006"},
-    {"name": "code_on_wages_2019",                "search": "Code on Wages 2019"},
-    {"name": "industrial_relations_code_2020",    "search": "Industrial Relations Code 2020"},
-    {"name": "national_medical_commission_2019",  "search": "National Medical Commission Act 2019"},
-    {"name": "bharatiya_nagarik_suraksha_2023",   "search": "Bharatiya Nagarik Suraksha"},
-    {"name": "bharatiya_sakshya_adhiniyam_2023",  "search": "Bharatiya Sakshya"},
-    {"name": "telecommunications_act_2023",       "search": "Telecommunications Act 2023"},
-    {"name": "it_act_2000",                       "search": "IT Act 2000"},
-    {"name": "right_to_education_act_2009",       "search": "Right to Education Act 2009"},
-    {"name": "persons_with_disabilities_act_2016","search": "Persons with Disabilities Act 2016"},
-    {"name": "jan_vishwas_act_2023",              "search": "Jan Vishwas Act 2023"},
-    {"name": "competition_act_2002",              "search": "Competition Act 2002"},
+    # ── Already working ✅ ─────────────────────────
+    {"name": "rti_act_2005",                      "search": "RTI Act 2005"},
+    {"name": "consumer_protection_act_2019",       "search": "Consumer Protection Act 2019"},
+    {"name": "forest_rights_act_2006",             "search": "Forest Rights Act 2006"},
+    {"name": "land_acquisition_act_2013",          "search": "Land Acquisition Act 2013"},
+    {"name": "code_on_wages_2019",                 "search": "Code on Wages 2019"},
+    {"name": "national_medical_commission_2019",   "search": "National Medical Commission Act 2019"},
+    {"name": "bharatiya_nagarik_suraksha_2023",    "search": "Bharatiya Nagarik Suraksha"},
+    {"name": "telecommunications_act_2023",        "search": "Telecommunications Act 2023"},
+    {"name": "right_to_education_act_2009",        "search": "Right to Education Act 2009"},
+    {"name": "persons_with_disabilities_act_2016", "search": "Persons with Disabilities Act 2016"},
+    {"name": "jan_vishwas_act_2023",               "search": "Jan Vishwas Act 2023"},
+    {"name": "competition_act_2002",               "search": "Competition Act 2002"},
+    {"name": "it_act_2000",                        "search": "IT Act 2000"},
+
+    # ── Removed (garbled font / indiacode HTML) ────
+    # bharatiya_sakshya_adhiniyam_2023  → garbled Hindi encoding
+    # industrial_relations_code_2020    → indiacode returns HTML
+
+    # ── Reliable replacements ─────────────────────
+    {"name": "environment_protection_act_1986",    "search": "Environment Protection Act 1986"},
+    {"name": "posh_act_2013",                      "search": "POSH Act 2013"},
 ]
+
 def ingest_bill(bill_name: str, pdf_path: str) -> dict:
     parsed = parse_pdf(pdf_path)
 
@@ -54,7 +68,10 @@ def ingest_bill(bill_name: str, pdf_path: str) -> dict:
             for i, h in enumerate(table[0])
         ]
         for row in table[1:]:
-            if not row or all(cell is None or str(cell).strip() == "" for cell in row):
+            if not row or all(
+                cell is None or str(cell).strip() == ""
+                for cell in row
+            ):
                 continue
             row_dict = {
                 headers[i]: str(cell).strip() if cell is not None else ""
@@ -78,13 +95,9 @@ def ingest_bill(bill_name: str, pdf_path: str) -> dict:
     output["entities"] = entities
     return output
 
-def run_batch():
-    """Loop through all 15 bills and ingest each one"""
 
-    results = {
-        "success": [],
-        "failed": []
-    }
+def run_batch():
+    results = {"success": [], "failed": []}
 
     print("=" * 60)
     print(f"BATCH INGESTION — {len(BILLS)} bills")
@@ -98,45 +111,40 @@ def run_batch():
         print(f"\n[{i}/{len(BILLS)}] {name}")
         print(f"  🔍 Searching: {search}")
 
-        # Skip if already ingested
         if os.path.exists(output_path):
             print(f"  ⏭️  Already exists — skipping")
             results["success"].append(name)
             continue
 
         try:
-            # Download PDF
             pdf_path = scrape_bill(search)
             print(f"  ✅ Downloaded PDF")
 
-            # Ingest
             output = ingest_bill(name, pdf_path)
 
-            # Save JSON
             with open(output_path, "w", encoding="utf-8") as f:
                 json.dump(output, f, indent=2, ensure_ascii=False)
 
+            section_count = len(output['sections'])
+            tokens = output['total_token_count']
+            pages = output['page_count']
+
+            # ── Sprint 2: warn if sections too low ──
+            status = "✅" if section_count >= 10 else "⚠️  LOW"
             print(f"  ✅ Saved: {output_path}")
-            print(f"     Sections : {len(output['sections'])}")
-            print(f"     Tokens   : {output['total_token_count']:,}")
-            print(f"     Pages    : {output['page_count']}")
+            print(f"     Sections : {section_count} {status}")
+            print(f"     Tokens   : {tokens:,}")
+            print(f"     Pages    : {pages}")
 
             results["success"].append(name)
-
-            # Be polite to servers
             time.sleep(2)
 
         except Exception as e:
             print(f"  ❌ FAILED: {e}")
             traceback.print_exc()
-            results["failed"].append({
-                "name": name,
-                "error": str(e)
-            })
-            # Continue with next bill even if one fails
+            results["failed"].append({"name": name, "error": str(e)})
             continue
 
-    # ── Final summary ──────────────────────────────
     print("\n" + "=" * 60)
     print("BATCH COMPLETE")
     print("=" * 60)
@@ -148,7 +156,6 @@ def run_batch():
         for f in results["failed"]:
             print(f"  - {f['name']}: {f['error']}")
 
-    # Save batch report
     with open("batch_report.json", "w") as f:
         json.dump(results, f, indent=2)
     print(f"\n📊 Report saved: batch_report.json")
