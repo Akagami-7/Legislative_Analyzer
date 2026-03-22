@@ -147,6 +147,10 @@ hpack==4.1.0
 hyperframe==6.1.0
 hstspreload==2025.1.1
 websockets==16.0
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> e78cbec56ebe35467a3723ad072f276eca27f141
 yarl==1.23.0
 =======
 
@@ -164,5 +168,9 @@ iniconfig==2.3.0
 pluggy==1.6.0
 pytest==9.0.2
 pillow==12.1.1
+<<<<<<< HEAD
+>>>>>>> 39ef8e69f6fc391a4439d94cef074cced6ed13af
+=======
 
 chromaDB
+>>>>>>> e78cbec56ebe35467a3723ad072f276eca27f141
