@@ -1139,10 +1139,14 @@
     async function fetchProviders() {
       try {
         const res = await fetch(`${API}/models/providers`);
-        if (!res.ok) throw new Error("API not okay");
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`Server returned ${res.status}: ${txt.substring(0, 50)}`);
+        }
         const data = await res.json();
         state.providers = data.providers;
       } catch (e) {
+        console.error("Fetch Providers Error:", e);
         console.warn("Backend not yet ready, will retry on click.");
       }
     }
@@ -1282,9 +1286,15 @@
 
       try {
         const res = await fetch(url);
-        const data = await res.json();
 
         if (btn) { btn.innerText = 'Load Models'; btn.disabled = false; }
+
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`Status ${res.status}: ${txt.substring(0, 80)}`);
+        }
+
+        const data = await res.json();
 
         if (data.status === 'error') {
           showBanner('error', data.message, pid);
@@ -1310,7 +1320,7 @@
         }
       } catch (e) {
         if (btn) { btn.innerText = 'Load Models'; btn.disabled = false; }
-        showBanner('error', 'Network failure contacting backend pipeline.', pid);
+        showBanner('error', `Network failure contacting backend pipeline. (${e.message})`, pid);
       }
     }
 

@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: legislative-analyzer
+    runtime: python
+    buildCommand: pip install -r requirements.txt && python -m spacy download en_core_web_sm
+    startCommand: uvicorn src.api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.8
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SCALEDOWN_API_KEY
+        sync: false
+      - key: HUGGINGFACE_TOKEN
+        sync: false
+    healthCheckPath: /health
