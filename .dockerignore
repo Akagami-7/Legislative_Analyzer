@@ -1,0 +1,14 @@
+.git
+.gitignore
+.env
+__pycache__
+*.pyc
+*.pyo
+venv/
+.venv/
+env/
+chroma_db/
+ingested_bills/
+batch_report.json
+*.csv
+*.zip
