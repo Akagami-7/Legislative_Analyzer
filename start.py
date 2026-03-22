@@ -9,6 +9,7 @@ import uvicorn
 processes = []
 
 def run_api():
+    print('Starting API and Dashboard Services on port 8000...')
     uvicorn.run(
         "src.api.main:app",
         host="127.0.0.1",
@@ -16,41 +17,18 @@ def run_api():
         reload=False
     )
 
-def run_frontend():
-    p = subprocess.Popen(
-        [sys.executable, "-m", "http.server", "3000"],
-        cwd="frontend"   # better than os.chdir
-    )
-    processes.append(p)
-    p.wait()
-
 if __name__ == "__main__":
-    print("Starting AI Legislative Analyzer...")
-    print("   API    → http://localhost:8000")
-    print("   App    → http://localhost:3000")
-    print("   Docs   → http://localhost:8000/docs")
-    print("\n   Press Ctrl+C to stop both servers\n")
-
-    # Start both servers in background threads
+    # Start the unified backend + frontend directly on port 8000
     api_thread = threading.Thread(target=run_api, daemon=True)
-    frontend_thread = threading.Thread(target=run_frontend, daemon=True)
-
     api_thread.start()
-    frontend_thread.start()
 
     time.sleep(2)
-    webbrowser.open("http://localhost:3000")
+    print("\n✅ Dashboard successfully launched at http://localhost:8000\n")
+    webbrowser.open("http://localhost:8000")
 
     try:
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
-        print("\nShutting down...")
-
-        for p in processes:
-            p.terminate()
-
-        for p in processes:
-            p.wait()
-
-        print("All processes stopped")
+        print("\nShutting down AI Legislative Analyzer...")
+        sys.exit(0)
