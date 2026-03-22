@@ -74,12 +74,22 @@ def get_models_for_provider(
         GET /api/v1/models/groq?api_key=gsk_xxx
         GET /api/v1/models/gemini?api_key=AIza_xxx
     """
+    print(f"DEBUG: Fetching models for provider: {provider}")
     if provider not in SUPPORTED_PROVIDERS:
+        print(f"DEBUG: Unknown provider: {provider}")
         return {
             "status" : "error",
             "message": f"⚠️ Unknown provider: {provider}. Choose from: {SUPPORTED_PROVIDERS}",
             "models" : []
         }
 
-    result = get_available_models(provider, api_key)
-    return result
+    try:
+        result = get_available_models(provider, api_key)
+        if result.get("status") == "error":
+            print(f"DEBUG: Result error for {provider}: {result.get('message')}")
+        return result
+    except Exception as e:
+        print(f"DEBUG: Unexpected error fetching models for {provider}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": f"Unexpected backend error: {str(e)}", "models": []}
