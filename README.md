@@ -225,7 +225,6 @@ Legislative_Analyzer/
 │   │   ├── rag_embedder.py
 │   │   ├── rag_retriever.py
 │   │   ├── scaledown_client.py
-│   │   ├── indicTrans2_translator.py
 │   │   ├── translator.py
 │   │   └── token_logger.py
 │   └── api/
