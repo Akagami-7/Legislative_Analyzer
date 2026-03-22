@@ -23,7 +23,6 @@ from src.compression.bm25_ranker import rank_and_filter
 from src.compression.extractor import extractive_compress
 from src.compression.prompt_assembler import assemble_prompt
 from src.compression.token_logger import log_compression, track_pipeline_emissions
-from src.compression.llm_client import analyze_with_gemini
 from src.compression.translator import translate_result
 from src.ingestion.scraper import scrape_bill
 from src.ingestion.pdf_parser import parse_pdf
@@ -31,6 +30,7 @@ from src.ingestion.ocr_engine import run_ocr
 from src.ingestion.section_splitter import split_sections
 from src.ingestion.ner_pipeline import extract_entities
 from src.shared_schemas import IngestedBill
+from src.compression.multi_llm_client import analyze_with_llm
 import tiktoken
 
 enc = tiktoken.get_encoding("cl100k_base")
@@ -147,32 +147,74 @@ def real_run_pipeline(task_id: str, request: AnalyzeRequest) -> None:
 
         filtered   = rank_and_filter(bill.sections, keep_ratio=keep_ratio)
         compressed = extractive_compress(filtered, sentences_per_section=sentences)
+
+        # Get ScaleDown settings from request
+        use_scaledown     = getattr(request, 'use_scaledown', False)
+        scaledown_api_key = getattr(request, 'scaledown_api_key', None)
+
+        if use_scaledown and scaledown_api_key:
+            print(f"\n⚡ Running ScaleDown compression...")
+            from src.compression.scaledown_client import try_scaledown_compress
+            compressed_text = "\n\n".join(
+                f"[{s.section_title}]\n{s.section_text}"
+                for s in compressed
+            )
+            sd_text, sd_metrics = try_scaledown_compress(
+                text=compressed_text,
+                api_key=scaledown_api_key,
+                model="llama-3-1-70b",
+                rate="auto"
+            )
+            from src.shared_schemas import BillSection
+            enc2 = tiktoken.get_encoding("cl100k_base")
+            compressed = [BillSection(
+                section_id    = "scaledown_compressed",
+                section_title = "ScaleDown Compressed",
+                section_text  = sd_text,
+                token_count   = len(enc2.encode(sd_text)),
+                page_number   = 1
+            )]
+
         prompt, prompt_tokens = assemble_prompt(bill, compressed)
 
         log_compression(bill.bill_id, bill.total_token_count, prompt_tokens)
 
         # ── Step 4: LLM Call ──────────────────────────────────
+        provider = getattr(request, "llm_provider", "gemini")
+        api_key  = getattr(request, "llm_api_key", None)
+
         analysis = track_pipeline_emissions(
             bill.bill_id,
             bill.total_token_count,
             prompt_tokens,
-            analyze_with_gemini,
+            analyze_with_llm,   # <-- IMPORTANT: unified wrapper (not gemini directly)
             prompt,
             bill.total_token_count,
-            prompt_tokens
+            prompt_tokens,
+            provider=provider,
+            api_key=api_key
         )
 
         # ── Step 5: Translate if needed ───────────────────────
         lang_code = request.language.value
         if lang_code != "en":
-            translated = translate_result(analysis, target_lang=lang_code)
+            # Get HF token from request or env
+            hf_token = getattr(request, 'hf_token', None) or os.getenv("HUGGINGFACE_TOKEN")
+            
+            translated = translate_result(
+                analysis, 
+                target_lang=lang_code,
+                hf_token=hf_token
+            )
             citizen_summary_text = translated["citizen_summary"]
             key_points = translated["key_changes"]
             impact = translated["rights_impact"]
+            overview = translated.get("overview")
         else:
             citizen_summary_text = analysis.citizen_summary
             key_points = analysis.key_changes
             impact = analysis.rights_impact
+            overview = getattr(analysis, "overview", None)
 
         # ── Step 6: Build response in AkashSamuel's schema ───
         compression_ratio = round(
@@ -206,6 +248,7 @@ def real_run_pipeline(task_id: str, request: AnalyzeRequest) -> None:
             headline=citizen_summary_text.split('.')[0] + '.',
             key_points=key_points,
             impact_statement=impact,
+            overview=overview,
             readability_score=None,
             language=request.language
         )

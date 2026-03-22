@@ -330,6 +330,7 @@ def embed_all_bills(bills_folder: str = "./ingested_bills") -> int:
         try:
             count = embed_bill(path)
             total += count
+
         except Exception as e:
             print(f"   ❌ Failed: {fname} — {e}")
             failed.append(fname)

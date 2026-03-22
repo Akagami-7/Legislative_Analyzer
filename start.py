@@ -13,7 +13,7 @@ def run_api():
         "src.api.main:app",
         host="127.0.0.1",
         port=8000,
-        reload=False   # keep False for clean shutdown
+        reload=False
     )
 
 def run_frontend():
@@ -38,11 +38,9 @@ if __name__ == "__main__":
     api_thread.start()
     frontend_thread.start()
 
-    # Wait a bit, then open browser
     time.sleep(2)
     webbrowser.open("http://localhost:3000")
 
-    # Keep main thread alive
     try:
         while True:
             time.sleep(1)

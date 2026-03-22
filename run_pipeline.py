@@ -13,6 +13,8 @@ from src.compression.llm_client import analyze_with_gemini
 from src.compression.translator import translate_result
 from src.compression.rag_embedder import embed_bill, get_collection_stats
 from src.compression.rag_retriever import retrieve_context, format_rag_context
+from src.compression.multi_llm_client import analyze_with_llm
+from src.compression.scaledown_client import try_scaledown_compress
 import tiktoken
 
 enc = tiktoken.get_encoding("cl100k_base")
@@ -121,7 +123,38 @@ def run_pipeline(json_path: str) -> None:
     sentence_budget = get_sentence_budget(bill.total_token_count)
     compressed = extractive_compress(filtered, sentences_per_section=sentence_budget)
 
-    # ── 3.5 RAG Context Retrieval ────────────────────────────
+    # ── 3.5 ScaleDown (optional) ──────────────────────────────
+    # Combine compressed sections into one text block
+    compressed_text = "\n\n".join(
+        f"[{s.section_title}]\n{s.section_text}"
+        for s in compressed
+    )
+
+    scaledown_api_key = os.getenv("SCALEDOWN_API_KEY")  # or pass from request
+    use_scaledown     = scaledown_api_key is not None
+
+    if use_scaledown:
+        print(f"\n⚡ Running ScaleDown compression...")
+        sd_text, sd_metrics = try_scaledown_compress(
+            text=compressed_text,
+            api_key=scaledown_api_key,
+            model="llama-3-1-70b",
+            rate="auto"
+        )
+        # Rebuild sections from ScaleDown output
+        from src.shared_schemas import BillSection
+        compressed = [BillSection(
+            section_id    = "scaledown_compressed",
+            section_title = "ScaleDown Compressed Content",
+            section_text  = sd_text,
+            token_count   = len(enc.encode(sd_text)),
+            page_number   = 1
+        )]
+        print(f"   ScaleDown reduction: {sd_metrics.get('reduction_percent', 0)}%")
+    else:
+        print(f"\n   ScaleDown: disabled (no API key)")
+
+    # ── 3.6 RAG Context Retrieval ────────────────────────────
     print(f"\n🔍 Retrieving RAG context...")
     civic_query = (
         f"{bill.bill_id} citizen rights penalty obligations "
@@ -148,10 +181,12 @@ def run_pipeline(json_path: str) -> None:
         bill.bill_id,
         bill.total_token_count,
         prompt_tokens,
-        analyze_with_gemini,      # function to track
-        prompt,                   # its arguments
+        analyze_with_llm,
+        prompt,
         bill.total_token_count,
-        prompt_tokens
+        prompt_tokens,
+        provider="gemini",    # default — override from API request
+        api_key=None          # uses .env GEMINI_API_KEY
     )
 
     # ── 7. Save Result ────────────────────────────────────────

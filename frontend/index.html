@@ -1,290 +1,1520 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Legislative Analyzer — Citizen's Dashboard</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>LegislativeAI — Citizen's Dashboard</title>
+
+  <!-- Add Google Fonts for the LawLens aesthetic -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* LAWLENS-INSPIRED DESIGN SYSTEM                                  */
+    /* ═══════════════════════════════════════════════════════════════ */
+    :root {
+      /* Palette */
+      --bg: #FAFAFA;
+      --bg-alt: #FFFFFF;
+      --border: #E5E7EB;
+      --border-dark: #D1D5DB;
+      --border-active: #000000;
+
+      --text-main: #111827;
+      --text-muted: #6B7280;
+      --text-light: #9CA3AF;
+
+      --accent-blue: #2563EB;
+      --accent-blue-bg: #EFF6FF;
+      --accent-green: #059669;
+      --accent-green-bg: #ECFDF5;
+      --accent-red: #DC2626;
+      --accent-red-bg: #FEF2F2;
+
+      --pill-header-bg: rgba(255, 255, 255, 0.9);
+
+      /* Typography */
+      --font-serif: 'Lora', Georgia, serif;
+      --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+
+      /* Shadows */
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.02);
+    }
+
+    [data-theme='dark'] {
+      --bg: #111827;
+      --bg-alt: #1F2937;
+      --border: #374151;
+      --border-dark: #4B5563;
+      --text-main: #F9FAFB;
+      --text-muted: #D1D5DB;
+      --text-light: #9CA3AF;
+      --pill-header-bg: rgba(17, 24, 39, 0.9);
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 4rem;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* HEADER (FLOATING PILL)                                          */
+    /* ═══════════════════════════════════════════════════════════════ */
+    .header-wrapper {
+      position: sticky;
+      top: 1.5rem;
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      padding: 0 1rem;
+    }
+
+    header {
+      background: var(--pill-header-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--border);
+      border-radius: 9999px;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      max-width: 900px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .logo {
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: 1.3rem;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .logo-badge {
+      font-family: var(--font-body);
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border: 1px solid var(--border);
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      color: var(--text-muted);
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .nav-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text-main);
+    }
+
+    .nav-btn {
+      background: var(--text-main);
+      color: var(--bg) !important;
+      padding: 0.5rem 1.25rem;
+      border-radius: 999px;
+      transition: opacity 0.2s;
+    }
+
+    .nav-btn:hover {
+      opacity: 0.9;
+    }
+
+    .theme-btn {
+      background: transparent;
+      color: var(--text-main);
+      border: 1px solid var(--border-dark);
+      padding: 0;
+      width: 2.2rem;
+      height: 2.2rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .theme-btn:hover {
+      background: var(--border);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* LAYOUT & TYPOGRAPHY                                             */
+    /* ═══════════════════════════════════════════════════════════════ */
+    .container {
+      max-width: 900px;
+      margin: 4rem auto 0;
+      padding: 0 1.5rem;
+    }
+
+    h1.hero-title {
+      font-family: var(--font-serif);
+      font-size: 4rem;
+      line-height: 1.1;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    h1.hero-title em {
+      font-style: italic;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 640px) {
+      h1.hero-title {
+        font-size: 2.5rem;
+      }
+
+      .nav-links {
+        display: none;
+      }
+    }
+
+    h2 {
+      font-family: var(--font-serif);
+      font-size: 2rem;
+      font-weight: 500;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.5rem;
+    }
+
+    h3 {
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+      font-weight: 500;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* UI COMPONENTS                                                   */
+    /* ═══════════════════════════════════════════════════════════════ */
+    .card {
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-dark {
+      background: var(--bg);
+      border: 1px solid var(--border);
+    }
+
+    .input-wrapper {
+      position: relative;
+      margin-bottom: 1.5rem;
+    }
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-main);
+      margin-bottom: 0.5rem;
+    }
+
+    input[type="text"],
+    input[type="url"],
+    input[type="password"],
+    select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border-dark);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      font-family: var(--font-body);
+      font-size: 1rem;
+      color: var(--text-main);
+      transition: all 0.2s ease;
+      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+    }
+
+    input:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--text-main);
+      box-shadow: 0 0 0 1px var(--text-main);
+    }
+
+    /* Input toggle buttons (Show/Hide pass) */
+    .input-group {
+      position: relative;
+      display: flex;
+    }
+
+    .input-group input {
+      padding-right: 5rem;
+    }
+
+    .input-toggle-btn {
+      position: absolute;
+      right: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.5rem;
+    }
+
+    .input-toggle-btn:hover {
+      color: var(--text-main);
+    }
+
+    .help-link {
+      display: inline-block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      text-decoration: none;
+      border-bottom: 1px dashed var(--text-light);
+    }
+
+    .help-link:hover {
+      color: var(--text-main);
+      border-bottom-color: var(--text-main);
+    }
+
+    .input-error {
+      color: var(--accent-red);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+      display: none;
+      font-weight: 500;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-body);
+      font-weight: 500;
+      font-size: 0.95rem;
+      padding: 0.875rem 1.5rem;
+      border-radius: 9999px;
+      /* Fully rounded like LawLens */
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--text-main);
+      color: white;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #000;
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+
+    .btn-primary:disabled {
+      background: var(--border-dark);
+      color: var(--bg);
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-secondary {
+      background: var(--bg);
+      border: 1px solid var(--border-dark);
+      color: var(--text-main);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--border);
+    }
+
+    /* Quick Load Pills */
+    .pills-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .pill {
+      background: var(--bg-alt);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 0.4rem 1rem;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .pill:hover {
+      border-color: var(--text-main);
+      color: var(--text-main);
+    }
+
+    /* Provider Cards Grid */
+    .provider-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (min-width: 640px) {
+      .provider-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .provider-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .provider-card:hover {
+      border-color: var(--text-light);
+    }
+
+    .provider-card.selected {
+      border: 2px solid var(--text-main);
+      background: var(--bg-alt);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .provider-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 0.5rem;
+      color: var(--text-main);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-green {
+      background: var(--accent-green-bg);
+      color: var(--accent-green);
+    }
+
+    .badge-gray {
+      background: var(--border);
+      color: var(--text-muted);
+    }
+
+    .badge-blue {
+      background: var(--accent-blue-bg);
+      color: var(--accent-blue);
+    }
+
+    /* Toggle Switch */
+    .toggle-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .toggle {
+      position: relative;
+      display: inline-block;
+      width: 48px;
+      height: 26px;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--border-dark);
+      border-radius: 34px;
+      transition: 0.2s;
+      cursor: pointer;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 20px;
+      width: 20px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      border-radius: 50%;
+      transition: 0.2s;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    input:checked+.slider {
+      background-color: var(--text-main);
+    }
+
+    input:checked+.slider:before {
+      transform: translateX(22px);
+    }
+
+    input:disabled+.slider {
+      background-color: var(--border);
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    /* Radio Group */
+    .radio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .radio-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--bg);
+    }
+
+    .radio-item:hover {
+      border-color: var(--text-light);
+    }
+
+    .radio-item input[type="radio"] {
+      margin-top: 0.25rem;
+      accent-color: var(--text-main);
+    }
+
+    .radio-content strong {
+      display: block;
+      font-size: 0.95rem;
+      margin-bottom: 0.25rem;
+      color: var(--text-main);
+    }
+
+    .radio-content span {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    /* Banners */
+    .alert-banner {
+      padding: 1rem;
+      border-radius: 12px;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      border-left: 4px solid transparent;
+    }
+
+    .alert-error {
+      background: var(--accent-red-bg);
+      border: 1px solid #FECACA;
+      border-left-color: var(--accent-red);
+      color: #991B1B;
+    }
+
+    .alert-success {
+      background: var(--accent-green-bg);
+      border: 1px solid #A7F3D0;
+      border-left-color: var(--accent-green);
+      color: #065F46;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* RESULTS PANEL (DIGITIZED EXTRACT AESTHETIC)                     */
+    /* ═══════════════════════════════════════════════════════════════ */
+    .results-container {
+      display: none;
+      animation: fadeIn 0.4s ease-out forwards;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .extract-box {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 2rem;
+      position: relative;
+      margin-bottom: 2rem;
+      box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+    }
+
+    .extract-label {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--accent-blue);
+      background: var(--accent-blue-bg);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .key-points {
+      list-style: none;
+      padding: 0;
+    }
+
+    .key-points li {
+      position: relative;
+      padding-left: 1.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .key-points li::before {
+      content: "—";
+      position: absolute;
+      left: 0;
+      color: var(--text-muted);
+      font-weight: bold;
+    }
+
+    /* Token Efficiency Bar */
+    .token-bar-bg {
+      background: var(--border);
+      height: 10px;
+      border-radius: 5px;
+      width: 100%;
+      margin: 1rem 0;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .token-bar-fill {
+      background: var(--text-main);
+      height: 100%;
+      width: 0%;
+      transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+      border-radius: 5px;
+    }
+
+    .token-labels {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    @media(min-width: 640px) {
+      .meta-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+
+    .meta-item {
+      padding: 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .meta-lbl {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.25rem;
+    }
+
+    .meta-val {
+      font-family: var(--font-mono);
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+
+    /* Loading Spinner */
+    .loader {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--text-main);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 3rem auto 1.5rem;
+    }
+
+    @keyframes spin {
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .loading-text {
+      text-align: center;
+      font-family: var(--font-serif);
+      font-size: 1.25rem;
+      font-style: italic;
+      color: var(--text-muted);
+      min-height: 2em;
+    }
+
+    /* Steps navigation */
+    .step-nav {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════ */
+    /* TOOLTIPS                                                        */
+    /* ═══════════════════════════════════════════════════════════════ */
+    .tooltip-container {
+      position: relative;
+      display: inline-flex;
+      cursor: help;
+    }
+
+    .tooltip-container .tooltip-text {
+      visibility: hidden;
+      width: 280px;
+      background-color: var(--text-main);
+      color: var(--bg);
+      text-align: left;
+      font-size: 0.8rem;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      position: absolute;
+      z-index: 1000;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%) translateY(10px);
+      transition: opacity 0.2s, transform 0.2s;
+      opacity: 0;
+      box-shadow: var(--shadow-lg);
+      font-weight: 500;
+      line-height: 1.5;
+    }
+
+    .tooltip-container .tooltip-text::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      margin-left: -6px;
+      border-width: 6px;
+      border-style: solid;
+      border-color: var(--text-main) transparent transparent transparent;
+    }
+
+    .tooltip-container:hover .tooltip-text {
+      visibility: visible;
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
 </head>
+
 <body>
 
-<!-- ═══════════════════════ HEADER ═══════════════════════════════════════ -->
-<header>
-  <div class="logo">
-    <span class="ashoka">🪷</span>
-    <span>Legislative<span class="accent">AI</span></span>
+  <!-- HEADER -->
+  <div class="header-wrapper">
+    <header>
+      <div class="logo">
+        LegislativeAI.
+        <span class="logo-badge">v2.0</span>
+      </div>
+      <div class="nav-links">
+        <button id="theme-toggle" class="theme-btn" title="Toggle Theme" onclick="toggleTheme()">
+          <span id="theme-icon" style="font-size:1.1rem; line-height:1;">☾</span>
+        </button>
+        <a href="#about">Platform</a>
+        <a href="https://github.com/Akagami-7/Legislative_Analyzer" target="_blank">Open Source</a>
+        <a href="#app" class="nav-btn" style="border:1px solid transparent;">Try Web App</a>
+      </div>
+    </header>
   </div>
-  <nav>
-    <a href="#analyze">Analyze</a>
-    <a href="#about">About</a>
-    <a href="https://github.com/Akagami-7/Legislative_Analyzer" target="_blank">GitHub</a>
-  </nav>
-</header>
 
-<!-- ═══════════════════════ HERO ═════════════════════════════════════════ -->
-<section class="hero">
-  <h1>Understand <em>Every Bill</em><br>Parliament Passes</h1>
-  <p>
-    Dense legalese, translated into plain language for every Indian citizen —
-    in all 22 scheduled languages.
-  </p>
-</section>
+  <div class="container" id="app">
 
-<!-- ═══════════════════════ MAIN ═════════════════════════════════════════ -->
-<main>
+    <!-- STEP 1: DOCUMENT INPUT -->
+    <div id="step-1" style="display: block;">
+      <h1 class="hero-title">Analyze the bill.<br><em>In a fraction of the time.</em></h1>
 
-  <!-- ── INPUT CARD ─────────────────────────────────────────────────── -->
-  <section class="card" id="analyze">
-    <h2><span class="icon">📄</span> Analyze a Bill or Policy Document</h2>
+      <div class="card">
+        <h3 style="margin-bottom: 1.5rem;">Document Selection</h3>
 
-    <!-- PDF URL -->
-    <div class="form-group">
-      <label for="pdf-url">PDF URL</label>
-      <input
-        type="url"
-        id="pdf-url"
-        placeholder="https://prsindia.org/files/bills_acts/bills_parliament/..."
-      />
-    </div>
+        <div class="input-wrapper">
+          <label>Gazette PDF URL</label>
+          <input type="url" id="pdf-url" placeholder="https://egazette.gov.in/WriteReadData/..." />
+          <div id="err-pdf" class="input-error">Please enter a valid PDF URL.</div>
+        </div>
 
-    <div class="divider-text">or paste text directly</div>
+        <div class="pills-row">
+          <span style="font-size:0.85rem; color:var(--text-muted); padding-top:0.4rem;">Quick paste:</span>
+          <button class="pill"
+            onclick="$('pdf-url').value='https://egazette.gov.in/WriteReadData/2023/247654.pdf';$('err-pdf').style.display='none';">DPDP
+            Act 2023</button>
+          <button class="pill"
+            onclick="$('pdf-url').value='https://egazette.gov.in/WriteReadData/2023/248078.pdf';$('err-pdf').style.display='none';">BNS
+            Act 2023</button>
+        </div>
 
-    <!-- Raw text -->
-    <div class="form-group">
-      <label for="raw-text">Bill Text</label>
-      <textarea
-        id="raw-text"
-        placeholder="Paste the bill, act, or policy document here…"
-      ></textarea>
-    </div>
+        <div class="input-wrapper" style="margin-bottom:0;">
+          <label>Output Language</label>
+          <select id="language">
+            <option value="en">English (default)</option>
+            <option value="hi">Hindi</option>
+            <option value="te">Telugu</option>
+            <option value="ta">Tamil</option>
+            <option value="bn">Bengali</option>
+            <option value="mr">Marathi</option>
+            <option value="gu">Gujarati</option>
+          </select>
+        </div>
 
-    <!-- Language selector -->
-    <div class="form-group">
-      <label for="language">Summary Language</label>
-      <select id="language">
-        <option value="en">English</option>
-        <option value="hi">हिन्दी — Hindi</option>
-        <option value="bn">বাংলা — Bengali</option>
-        <option value="te">తెలుగు — Telugu</option>
-        <option value="mr">मराठी — Marathi</option>
-        <option value="ta">தமிழ் — Tamil</option>
-        <option value="ur">اردو — Urdu</option>
-        <option value="gu">ગુજરાતી — Gujarati</option>
-        <option value="kn">ಕನ್ನಡ — Kannada</option>
-        <option value="or">ଓଡ଼ିଆ — Odia</option>
-        <option value="pa">ਪੰਜਾਬੀ — Punjabi</option>
-        <option value="ml">മലയാളം — Malayalam</option>
-        <option value="as">অসমীয়া — Assamese</option>
-      </select>
-    </div>
-
-    <button class="btn btn-primary" id="analyze-btn" onclick="submitAnalysis()">
-      Analyze Bill
-    </button>
-  </section>
-
-  <!-- ── RESULTS CARD ────────────────────────────────────────────────── -->
-  <section class="card" id="results">
-
-    <!-- Headline + badge -->
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem;">
-      <p class="headline" id="res-headline"></p>
-      <span class="badge">✓ Completed</span>
-    </div>
-
-    <!-- Impact statement -->
-    <div class="impact-box" id="res-impact"></div>
-
-    <!-- Key points -->
-    <h2 style="font-size:1rem;margin-bottom:.75rem;">
-      <span class="icon">🔑</span> Key Points
-    </h2>
-    <ul class="key-points" id="res-points"></ul>
-
-    <!-- Readability -->
-    <p style="margin-top:1rem;font-size:.82rem;color:var(--muted);">
-      Readability score: <strong id="res-readability"></strong>
-      &nbsp;·&nbsp; Flesch scale (0–100, higher = easier)
-    </p>
-
-    <!-- Compression metrics -->
-    <h2 style="font-size:1rem;margin-top:1.5rem;margin-bottom:.75rem;">
-      <span class="icon">⚡</span> Token Compression Metrics
-    </h2>
-    <div class="metrics">
-      <div class="metric">
-        <span class="val" id="m-original"></span>
-        <span class="lbl">Original tokens</span>
-      </div>
-      <div class="metric">
-        <span class="val" id="m-compressed"></span>
-        <span class="lbl">Compressed tokens</span>
-      </div>
-      <div class="metric">
-        <span class="val" id="m-ratio"></span>
-        <span class="lbl">Compression ratio</span>
-      </div>
-      <div class="metric">
-        <span class="val green" id="m-carbon"></span>
-        <span class="lbl">Carbon saved (g CO₂)</span>
+        <div class="step-nav">
+          <button class="btn btn-primary" onclick="goToStep2()">Continue to AI Settings &rarr;</button>
+        </div>
       </div>
     </div>
 
-  </section>
+    <!-- STEP 2: AI SETTINGS -->
+    <div id="step-2" style="display: none;">
+      <h1 class="hero-title" style="font-size: 2.5rem;">Configure Pipeline.<br><em>Choose your intelligence.</em></h1>
 
-  <!-- ── ERROR BOX ───────────────────────────────────────────────────── -->
-  <div class="error-box" id="error-box" style="display:none;"></div>
+      <!-- A: LLM Provider -->
+      <div class="card">
+        <h3 style="margin-bottom: 0.5rem;">Choose Your AI Provider</h3>
+        <p class="subtitle" style="margin-bottom: 1.5rem;">Select the model engine for semantic analysis.</p>
 
-  <!-- ── ABOUT ───────────────────────────────────────────────────────── -->
-  <section class="card" id="about" style="margin-top:2rem;">
-    <h2><span class="icon">ℹ️</span> About This Project</h2>
-    <p style="line-height:1.7;font-size:.95rem;">
-      <strong>AI Legislative Analyzer</strong> is a capstone project that makes
-      Indian parliamentary bills understandable to ordinary citizens.
-      It uses <em>token compression</em> to shrink 100 000-token legal documents
-      before running any LLM — maximising civic value while minimising
-      energy consumption and carbon output.
-    </p>
-    <p style="margin-top:.9rem;line-height:1.7;font-size:.95rem;">
-      Built by <strong>Akagami</strong> (compression · RAG · LLM),
-      <strong>rishi</strong> (ingestion · OCR · NER), and
-      <strong>AkashSamuel</strong> (API · frontend · async queue).
-    </p>
-  </section>
+        <!-- Dynamic Provider Grid -->
+        <div class="provider-grid" id="providers-grid">
+          <!-- JS fills this -->
+          <div style="grid-column: 1/-1; padding: 2rem; text-align: center; color: var(--text-muted);">
+            Loading providers...
+          </div>
+        </div>
+        <div id="err-provider" class="input-error" style="margin-bottom:1.5rem">Please select an AI provider</div>
 
-</main>
+        <!-- API Key Box -->
+        <div id="box-api-key" class="card-dark"
+          style="display: none; padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem;">
+          <label id="lbl-api-key">API Key</label>
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+            <div class="input-group" style="flex: 1; min-width: 200px;">
+              <input type="password" id="api-key" placeholder="Enter key..." />
+              <button class="input-toggle-btn" tabindex="-1" onclick="togglePass('api-key', this)">Show</button>
+            </div>
+            <button class="btn btn-secondary" id="btn-load-models" onclick="loadModels()">Load Models</button>
+          </div>
+          <a href="#" id="link-api-key" class="help-link" target="_blank">Get API Key</a>
+        </div>
 
-<!-- ═══════════════════════ FOOTER ═══════════════════════════════════════ -->
-<footer>
-  <p>
-    <strong>AI Legislative Analyzer</strong> &nbsp;·&nbsp;
-    Citizen's Dashboard v1.0 &nbsp;·&nbsp;
-    <a href="https://github.com/Akagami-7/Legislative_Analyzer" style="color:var(--navy-light);">GitHub</a>
-  </p>
-</footer>
+        <!-- Local Ollama Note -->
+        <div id="box-ollama" class="card-dark"
+          style="display: none; padding: 1.5rem; border-radius: 12px; margin-bottom: 1rem;">
+          <h4 style="font-weight:600; margin-bottom:0.25rem;">Local Execution Engine</h4>
+          <p style="font-size:0.9rem; color:var(--text-muted);">Ollama runs completely locally. No API key required.</p>
+        </div>
 
-<!-- ═══════════════════════ JS ════════════════════════════════════════════ -->
-<script>
-  // ── config ─────────────────────────────────────────────────────────────
-  const API_BASE = "http://localhost:8000/api/v1";
-  const POLL_INTERVAL_MS = 1500;
-  const MAX_POLLS = 20;
+        <!-- Banners -->
+        <div id="banner-api" class="alert-banner" style="display: none;"></div>
 
-  // ── helpers ────────────────────────────────────────────────────────────
-  const $  = id => document.getElementById(id);
-  const show = id => $(id).style.display = "";
-  const hide = id => $(id).style.display = "none";
+        <!-- Models Dropdown -->
+        <div id="box-models" style="display: none; margin-top: 1.5rem;">
+          <label>Select Model</label>
+          <select id="select-model"></select>
+        </div>
+      </div>
 
-  function setLoading(loading) {
-    const btn = $("analyze-btn");
-    btn.disabled = loading;
-    btn.innerHTML = loading
-      ? '<span class="spinner"></span> Analyzing…'
-      : "Analyze Bill";
-  }
+      <!-- B: ScaleDown -->
+      <div class="card">
+        <h3 style="margin-bottom: 0.5rem;">ScaleDown Compression</h3>
+        <p class="subtitle" style="margin-bottom: 1.5rem;">Optional secondary compression pass for large contexts.</p>
 
-  function showError(msg) {
-    const box = $("error-box");
-    box.textContent = "⚠ " + msg;
-    show("error-box");
-  }
+        <div class="toggle-wrapper" style="margin-bottom: 1rem;">
+          <label class="toggle">
+            <input type="checkbox" id="sd-toggle" onchange="handleSdToggle()">
+            <span class="slider"></span>
+          </label>
+          <span style="font-weight: 500;">Enable ScaleDown</span>
+        </div>
 
-  function clearError() { hide("error-box"); }
+        <div id="sd-note" style="display: none; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+          Compatible only with GPT, Claude, or Groq.
+        </div>
 
-  // ── render results ─────────────────────────────────────────────────────
-  function renderResults(data) {
-    const s  = data.summary;
-    const cd = data.compressed_document;
+        <div id="box-sd-key" style="display: none; margin-top: 1rem;">
+          <label>ScaleDown API Key</label>
+          <div class="input-group">
+            <input type="password" id="sd-key" placeholder="OzvyGb..." />
+            <button class="input-toggle-btn" tabindex="-1" onclick="togglePass('sd-key', this)">Show</button>
+          </div>
+          <a href="https://scaledown.ai" class="help-link" target="_blank">Get ScaleDown Key</a>
+          <div id="err-sd" class="input-error">Required when enabled.</div>
+        </div>
+      </div>
 
-    $("res-headline").textContent      = s.headline;
-    $("res-impact").textContent        = s.impact_statement;
-    $("res-readability").textContent   = s.readability_score ?? "N/A";
+      <!-- C: Translation -->
+      <div class="card" id="sect-trans" style="display: none;">
+        <h3 style="margin-bottom: 0.5rem;">Neural Translation Mode</h3>
+        <p class="subtitle" style="margin-bottom: 1.5rem;">Output language selected is non-English.</p>
 
-    const ul = $("res-points");
-    ul.innerHTML = "";
-    (s.key_points || []).forEach(pt => {
-      const li = document.createElement("li");
-      li.textContent = pt;
-      ul.appendChild(li);
+        <div class="radio-group">
+          <label class="radio-item">
+            <input type="radio" name="trans" value="google" checked onchange="handleTransToggle()">
+            <div class="radio-content">
+              <strong>Google Translate <span>(Default)</span></strong>
+              <span>Fast, deterministic fallback without keys.</span>
+            </div>
+          </label>
+          <label class="radio-item">
+            <input type="radio" name="trans" value="hf" onchange="handleTransToggle()">
+            <div class="radio-content">
+              <strong>IndicTrans2 via AI4Bharat</strong>
+              <span>Certified neural accuracy. Requires free HuggingFace API token.</span>
+            </div>
+          </label>
+        </div>
+
+        <div id="box-hf-key"
+          style="display: none; margin-top: 1.5rem; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+          <label>HuggingFace Access Token</label>
+          <div class="input-group">
+            <input type="password" id="hf-key" placeholder="hf_..." />
+            <button class="input-toggle-btn" tabindex="-1" onclick="togglePass('hf-key', this)">Show</button>
+          </div>
+          <div style="display: flex; justify-content: space-between; flex-wrap: wrap;">
+            <a href="https://huggingface.co/settings/tokens" class="help-link" target="_blank">Get HF Token</a>
+            <span style="font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem;">1000 requests/day free
+              quota</span>
+          </div>
+          <div id="err-hf" class="input-error">Required for IndicTrans2.</div>
+        </div>
+      </div>
+
+      <div class="step-nav" style="justify-content: space-between;">
+        <button class="btn btn-secondary" onclick="goToStep1()">&larr; Back</button>
+        <button class="btn btn-primary" id="btn-analyze" onclick="submitAnalysis()">Analyze Bill</button>
+      </div>
+    </div>
+
+    <!-- STEP 3: RESULTS / LOADING -->
+    <div id="step-3" style="display: none;">
+
+      <!-- Loading UI -->
+      <div id="res-loading" style="padding: 4rem 0;">
+        <div class="loader"></div>
+        <div class="loading-text" id="loader-msg">Initializing extraction pipeline...</div>
+      </div>
+
+      <!-- Error UI -->
+      <div id="res-error" style="display:none; padding: 2rem 0;">
+        <div class="alert-banner alert-error" style="padding: 1.5rem;">
+          <h3 style="color: #991B1B; margin-bottom: 0.5rem; font-family:var(--font-body); font-weight:600;">Analysis
+            Interrupted</h3>
+          <div id="err-msg" style="font-size: 0.95rem;">API Error occurred.</div>
+        </div>
+
+        <div id="err-tips" class="card-dark" style="display:none; padding:1.5rem; border-radius:12px;">
+          <h4 style="margin-bottom:1rem; font-weight:600;">Suggested Actions:</h4>
+          <ul id="err-tips-list" style="margin-left:1.5rem; color:var(--text-muted); line-height:1.7;"></ul>
+        </div>
+
+        <button class="btn btn-secondary" style="margin-top:2rem;" onclick="resetApp()">&larr; Return to Form</button>
+      </div>
+
+      <!-- Success UI -->
+      <div id="res-success" class="results-container">
+        <h1 class="hero-title" style="font-size:2.5rem; text-align:left; margin-bottom:2rem;">Intelligence Report.</h1>
+
+        <div class="card">
+          <h3 style="margin-bottom:2rem; border-bottom:1px solid var(--border); padding-bottom:1rem;">Token Economics
+          </h3>
+          <div class="token-bar-bg"
+            title="This bar visually demonstrates the ratio of tokens preserved after deep filtering/compression.">
+            <div class="token-bar-fill" id="token-bar"></div>
+          </div>
+          <div class="token-labels" style="margin-bottom: 2rem;">
+            <span id="lbl-orig">Raw tokens</span>
+            <span id="lbl-comp">Compressed output</span>
+          </div>
+
+          <div class="pills-row" style="margin: 0;">
+            <span class="pill" style="background:var(--accent-blue-bg); color:var(--accent-blue); border:none;"
+              id="pill-red"></span>
+            <span class="pill" style="background:var(--accent-green-bg); color:var(--accent-green); border:none;"
+              id="pill-co2"></span>
+          </div>
+        </div>
+
+        <div class="extract-box">
+          <div class="extract-label" id="lang-label">[CITIZEN EXTRACT / EN]</div>
+          <h2 style="margin-bottom: 1rem; margin-top: 1rem;" id="res-headline">Headline</h2>
+          <p style="font-size: 1.05rem; color: var(--text-muted); line-height: 1.8;" id="res-impact">Impact</p>
+        </div>
+
+        <div class="card">
+          <h3 style="margin-bottom: 1.5rem;">Substantive Changes</h3>
+          <ul class="key-points" id="res-kp"></ul>
+        </div>
+
+        <div class="card" id="res-overview-card" style="display: none;">
+          <h3 style="margin-bottom: 1.5rem;">Concluding Overview</h3>
+          <ul class="key-points" id="res-overview-list" style="color: var(--text-muted); line-height: 1.8;"></ul>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-item">
+            <div class="meta-lbl">Engine</div>
+            <div class="meta-val" id="meta-eng"></div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-lbl">Original Length</div>
+            <div class="meta-val" id="meta-tlen"></div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-lbl">Pages Detected</div>
+            <div class="meta-val" id="meta-pg"></div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-lbl">Sections Parsed</div>
+            <div class="meta-val" id="meta-sec"></div>
+          </div>
+        </div>
+
+        <div class="step-nav" style="justify-content: flex-start; gap: 1rem;">
+          <button class="btn btn-primary" id="btn-copy" onclick="copyResult()">Copy Report</button>
+          <button class="btn btn-secondary" onclick="resetApp()">Analyze Another</button>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <!-- APPLICATION LOGIC                                               -->
+  <!-- ═══════════════════════════════════════════════════════════════ -->
+  <script>
+    const API = 'http://localhost:8000/api/v1';
+    const SCALEDOWN_COMPATIBLE = ['gpt', 'claude', 'groq'];
+
+    const LOADING_MSGS = [
+      'Extracting layout and metadata...',
+      'Reconstructing tabular structures...',
+      'Semantic clause demarcation...',
+      'Running TF-IDF density checks...',
+      'Filtering boilerplate sections...',
+      'Compressing with RAG heuristics...',
+      'Calling generative engine...',
+      'Refining syntactical output...'
+    ];
+
+    let state = {
+      providers: [],
+      provider: null,
+      availableModels: [],
+      taskId: null,
+      result: null
+    };
+
+    let pTimer = null;
+    const $ = id => document.getElementById(id);
+    const hide = id => $(id).style.display = 'none';
+    const show = (id, style = 'block') => $(id).style.display = style;
+
+    function toggleTheme() {
+      const isDark = document.body.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        document.body.removeAttribute('data-theme');
+        $('theme-icon').innerText = '☾';
+      } else {
+        document.body.setAttribute('data-theme', 'dark');
+        $('theme-icon').innerText = '☀';
+      }
+    }
+
+    // Wait until document fully loads to boot
+    window.addEventListener('DOMContentLoaded', () => {
+      // Small delay just to let local python backend start if launched simultaneously
+      setTimeout(fetchProviders, 500);
+
+      // Auto transitions on enter
+      $('pdf-url').addEventListener('keydown', e => { if (e.key === 'Enter') goToStep2(); });
+      $('api-key').addEventListener('keydown', e => { if (e.key === 'Enter') loadModels(); });
     });
 
-    $("m-original").textContent   = (cd.original_tokens   || 0).toLocaleString();
-    $("m-compressed").textContent = (cd.compressed_tokens || 0).toLocaleString();
-    $("m-ratio").textContent      = ((cd.compression_ratio || 0) * 100).toFixed(1) + "%";
-    $("m-carbon").textContent     = (cd.carbon_saved_grams || 0).toFixed(4);
-
-    const results = $("results");
-    results.classList.add("visible");
-    results.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-
-  // ── poll ───────────────────────────────────────────────────────────────
-  async function pollUntilDone(taskId, attempts = 0) {
-    if (attempts >= MAX_POLLS) {
-      setLoading(false);
-      showError("Timed out waiting for result. Please try again.");
-      return;
-    }
-    try {
-      const r    = await fetch(`${API_BASE}/bills/${taskId}`);
-      const data = await r.json();
-
-      if (data.status === "completed") {
-        setLoading(false);
-        renderResults(data);
-      } else if (data.status === "failed") {
-        setLoading(false);
-        showError(data.error || "Pipeline failed.");
-      } else {
-        setTimeout(() => pollUntilDone(taskId, attempts + 1), POLL_INTERVAL_MS);
+    async function fetchProviders() {
+      try {
+        const res = await fetch(`${API}/models/providers`);
+        if (!res.ok) throw new Error("API not okay");
+        const data = await res.json();
+        state.providers = data.providers;
+      } catch (e) {
+        console.warn("Backend not yet ready, will retry on click.");
       }
-    } catch (e) {
-      setLoading(false);
-      showError("Cannot reach API server. Is it running on port 8000?");
-    }
-  }
-
-  // ── submit ─────────────────────────────────────────────────────────────
-  async function submitAnalysis() {
-    clearError();
-    $("results").classList.remove("visible");
-
-    const pdfUrl  = $("pdf-url").value.trim();
-    const rawText = $("raw-text").value.trim();
-    const lang    = $("language").value;
-
-    if (!pdfUrl && !rawText) {
-      showError("Please provide a PDF URL or paste bill text.");
-      return;
     }
 
-    const body = { language: lang };
-    if (pdfUrl)   body.pdf_url  = pdfUrl;
-    if (rawText)  body.raw_text = rawText;
+    function togglePass(id, btn) {
+      const field = $(id);
+      if (field.type === 'password') { field.type = 'text'; btn.innerText = 'Hide'; }
+      else { field.type = 'password'; btn.innerText = 'Show'; }
+    }
 
-    setLoading(true);
+    // Step Navigation
+    function goToStep1() {
+      hide('step-2'); hide('step-3'); show('step-1');
+    }
 
-    try {
-      const r    = await fetch(`${API_BASE}/analyze`, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify(body),
+    async function goToStep2() {
+      const url = $('pdf-url').value.trim();
+      if (!url) { show('err-pdf'); return; }
+      hide('err-pdf');
+
+      const lang = $('language').value;
+      if (lang === 'en') hide('sect-trans');
+      else show('sect-trans');
+
+      // Attempt to load providers if failed originally
+      if (state.providers.length === 0) {
+        const btn = $(`step-1`).querySelector('.btn-primary');
+        const old = btn.innerText;
+        btn.innerText = 'Waking engine...';
+        btn.disabled = true;
+        try {
+          const res = await fetch(`${API}/models/providers`);
+          const d = await res.json();
+          state.providers = d.providers;
+        } catch (e) {
+          alert("Cannot connect to API at localhost:8000. Ensure 'python start.py' is running.");
+          btn.innerText = old; btn.disabled = false;
+          return;
+        }
+        btn.innerText = old; btn.disabled = false;
+      }
+
+      hide('step-1'); show('step-2');
+      renderProviders();
+    }
+
+    // Providers & Models
+    function renderProviders() {
+      const container = $('providers-grid');
+      container.innerHTML = '';
+
+      state.providers.forEach(p => {
+        const div = document.createElement('div');
+        div.className = `provider-card ${state.provider === p.id ? 'selected' : ''}`;
+        div.onclick = () => selectProvider(p.id);
+
+        const bType = p.id === 'ollama' ? 'badge-gray' : (p.free_tier ? 'badge-green' : 'badge-blue');
+        const bText = p.id === 'ollama' ? 'Local Compute' : (p.free_tier ? 'Free Tier' : 'Paid Plan');
+
+        div.innerHTML = `
+          <div class="badge ${bType}" style="position:absolute; top:1.25rem; right:1.25rem;">${bText}</div>
+          <div class="provider-title">${p.name}</div>
+          <div style="font-size:0.8rem; color:var(--text-muted);">${p.id === 'ollama' ? 'Runs natively' : 'Cloud hosted API'}</div>
+        `;
+        container.appendChild(div);
       });
 
-      if (!r.ok) {
-        const err = await r.json();
-        throw new Error(err.detail || `HTTP ${r.status}`);
+      if (!state.provider && state.providers.length > 0) {
+        selectProvider(state.providers[0].id); // Auto select first
+      }
+    }
+
+    function selectProvider(pid) {
+      state.provider = pid;
+      state.availableModels = [];
+      hide('err-provider'); hide('banner-api'); hide('box-models');
+      $('api-key').value = ''; // Clean state
+
+      renderProviders(); // Update border
+
+      const p = state.providers.find(x => x.id === pid);
+
+      if (pid === 'ollama') {
+        show('box-api-key');
+        $('lbl-api-key').innerText = `Ollama Base URL (Optional)`;
+        $('api-key').type = "url";
+        $('api-key').placeholder = "http://localhost:11434";
+        $('link-api-key').style.display = 'none';
+        hide('box-ollama');
+      } else {
+        hide('box-ollama'); show('box-api-key');
+        $('lbl-api-key').innerText = `API Key for ${p.name}`;
+        $('api-key').type = "password";
+        $('api-key').placeholder = "Enter key...";
+        $('link-api-key').href = p.get_key_url;
+        $('link-api-key').style.display = 'inline-block';
       }
 
-      const { task_id } = await r.json();
-      pollUntilDone(task_id);
-
-    } catch (e) {
-      setLoading(false);
-      showError(e.message || "Unknown error.");
+      // Handle ScaleDown
+      const sdCompat = SCALEDOWN_COMPATIBLE.includes(pid);
+      if (sdCompat) {
+        $('sd-toggle').disabled = false;
+        hide('sd-note');
+      } else {
+        $('sd-toggle').disabled = true;
+        $('sd-toggle').checked = false;
+        handleSdToggle();
+        show('sd-note', 'block');
+      }
     }
-  }
-</script>
 
+    function handleSdToggle() {
+      if ($('sd-toggle').checked) show('box-sd-key');
+      else { hide('box-sd-key'); $('err-sd').style.display = 'none'; }
+    }
+
+    function handleTransToggle() {
+      const mode = document.querySelector('input[name="trans"]:checked').value;
+      if (mode === 'hf') show('box-hf-key');
+      else { hide('box-hf-key'); $('err-hf').style.display = 'none'; }
+    }
+
+    async function loadModels() {
+      const pid = state.provider;
+      const key = $('api-key').value.trim();
+
+      if (pid !== 'ollama' && !key) {
+        $('api-key').focus(); return;
+      }
+
+      hide('banner-api');
+      const btn = $('btn-load-models');
+      if (btn) { btn.innerText = 'Connecting...'; btn.disabled = true; }
+
+      let url = `${API}/models/${pid}`;
+      if (key) url += `?api_key=${encodeURIComponent(key)}`;
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        if (btn) { btn.innerText = 'Load Models'; btn.disabled = false; }
+
+        if (data.status === 'error') {
+          showBanner('error', data.message, pid);
+          return;
+        }
+
+        if (data.models && data.models.length > 0) {
+          state.availableModels = data.models;
+
+          const sel = $('select-model');
+          sel.innerHTML = '';
+          data.models.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.innerText = `${m.name} ${m.free ? '🆓' : '💳'}`;
+            sel.appendChild(opt);
+          });
+
+          showBanner('success', `Connection secured. ${data.count} models detected.`);
+          show('box-models');
+        } else {
+          showBanner('error', 'No text-generation models found on this account.', pid);
+        }
+      } catch (e) {
+        if (btn) { btn.innerText = 'Load Models'; btn.disabled = false; }
+        showBanner('error', 'Network failure contacting backend pipeline.', pid);
+      }
+    }
+
+    function showBanner(type, msg, pid = null) {
+      const b = $('banner-api');
+      b.className = `alert-banner ${type === 'error' ? 'alert-error' : 'alert-success'}`;
+      b.style.display = 'flex';
+
+      let html = `<strong>${type === 'error' ? '⚠️ Connection Error' : '✓ Protocol Established'}</strong><span>${msg}</span>`;
+
+      if (type === 'error') {
+        if (pid === 'ollama') {
+          html += `<a href="https://ollama.com" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; padding:0.4rem 1rem; margin-top:0.5rem; align-self:flex-start;">Install Local Runtime</a>`;
+        } else if (pid) {
+          const p = state.providers.find(x => x.id === pid);
+          if (p && p.get_key_url) html += `<a href="${p.get_key_url}" target="_blank" class="btn btn-secondary" style="font-size:0.8rem; padding:0.4rem 1rem; margin-top:0.5rem; align-self:flex-start;">Check Account Quota</a>`;
+        }
+      }
+      b.innerHTML = html;
+    }
+
+    // Analysis Pipeline
+    async function submitAnalysis() {
+      hide('err-sd'); hide('err-hf'); hide('err-provider');
+
+      const pid = state.provider;
+      if (!pid) { show('err-provider'); return; }
+      if (pid !== 'ollama' && !$('api-key').value.trim()) {
+        showBanner('error', "Authentication credential required.", pid); return;
+      }
+      if (state.availableModels.length === 0) {
+        showBanner('error', "Please link your account and select a model first.", pid); return;
+      }
+
+      const sdUse = $('sd-toggle').checked;
+      const sdKey = $('sd-key').value.trim();
+      if (sdUse && !sdKey) { show('err-sd'); return; }
+
+      const transMode = document.querySelector('input[name="trans"]')?.checked
+        ? document.querySelector('input[name="trans"]:checked').value : 'google';
+      const hfKey = $('hf-key').value.trim();
+      const lang = $('language').value;
+      if (lang !== 'en' && transMode === 'hf' && !hfKey) { show('err-hf'); return; }
+
+      // Proceed to step 3 loading
+      hide('step-2'); show('step-3');
+      hide('res-error'); hide('res-success'); show('res-loading');
+
+      // Rotating loading
+      let lIdx = 0;
+      $('loader-msg').innerText = LOADING_MSGS[0];
+      if (pTimer) clearInterval(pTimer);
+      pTimer = setInterval(() => {
+        lIdx = (lIdx + 1) % LOADING_MSGS.length;
+        $('loader-msg').innerText = LOADING_MSGS[lIdx];
+      }, 3500);
+
+      try {
+        const body = {
+          pdf_url: $('pdf-url').value.trim(),
+          language: lang,
+          llm_provider: pid,
+          llm_model: $('select-model').value,
+          use_scaledown: sdUse
+        };
+        const k = $('api-key').value.trim();
+        if (k) body.llm_api_key = k;
+        if (sdUse) body.scaledown_api_key = sdKey;
+        if (lang !== 'en' && transMode === 'hf') body.hf_token = hfKey;
+
+        const r = await fetch(`${API}/analyze`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.detail || "Pipeline initiation failed");
+
+        state.taskId = d.task_id;
+        pollTask(state.taskId);
+
+      } catch (e) {
+        handleError(e.message);
+      }
+    }
+
+    async function pollTask(tid, att = 0) {
+      if (att > 45) { handleError("Server operation timed out."); return; }
+      try {
+        const r = await fetch(`${API}/bills/${tid}`);
+        const d = await r.json();
+
+        if (d.status === 'completed') {
+          if (pTimer) clearInterval(pTimer);
+          renderResults(d);
+        } else if (d.status === 'failed') {
+          handleError(d.error || "Sub-system crash during processing.");
+        } else {
+          setTimeout(() => pollTask(tid, att + 1), 2000);
+        }
+      } catch (e) {
+        handleError("Connection to pipeline lost.");
+      }
+    }
+
+    function handleError(msg) {
+      if (pTimer) clearInterval(pTimer);
+      hide('res-loading'); hide('res-success'); show('res-error');
+
+      let m = msg.replace('⚠️', '').trim();
+      $('err-msg').innerText = m;
+
+      const tBox = $('err-tips');
+      const tList = $('err-tips-list');
+      tList.innerHTML = '';
+
+      const ml = m.toLowerCase();
+      if (ml.includes('quota') || ml.includes('rate limit') || ml.includes('insufficient')) {
+        tList.innerHTML = `<li>Verify your billing profile on the provider's platform.</li><li>Alternatively, utilize Groq's high-throughput free tier.</li>`;
+        show('err-tips');
+      } else if (ml.includes('ollama')) {
+        tList.innerHTML = `<li>Ensure your local Docker or Ollama service is active.</li><li>Run <span style="font-family:monospace; color:var(--text-main)">ollama run ${$('select-model').value}</span> temporarily to force a pull.</li>`;
+        show('err-tips');
+      } else if (ml.includes('invalid') || ml.includes('key')) {
+        tList.innerHTML = `<li>Cryptographic verification failed for the provided token.</li><li>Ensure no trailing whitespace was copied.</li>`;
+        show('err-tips');
+      } else {
+        hide('err-tips');
+      }
+    }
+
+    function renderResults(res) {
+      hide('res-loading'); show('res-success');
+      state.result = res;
+
+      const sum = res.summary;
+      const comp = res.compressed_document;
+      const raw = res.raw_document;
+
+      // Setup UI
+      $('lang-label').innerText = `[DIGITIZED CITIZEN EXTRACT / ${sum.language.toUpperCase()}]`;
+      $('res-headline').innerText = sum.headline;
+      $('res-impact').innerText = sum.impact_statement;
+
+      const ul = $('res-kp'); ul.innerHTML = '';
+      sum.key_points.forEach(k => {
+        const li = document.createElement('li');
+        li.innerText = k; ul.appendChild(li);
+      });
+
+      // Meta
+      if (sum.overview) {
+        const ulist = $('res-overview-list');
+        ulist.innerHTML = '';
+        const blocks = sum.overview.split('\n').map(x => x.trim().replace(/^[-•*]\s*/, '')).filter(x => x);
+        blocks.forEach(b => {
+          const li = document.createElement('li');
+          li.innerText = b;
+          ulist.appendChild(li);
+        });
+        show('res-overview-card');
+      } else {
+        hide('res-overview-card');
+      }
+      $('meta-eng').innerText = $('select-model').value || 'Generative Engine';
+      $('meta-tlen').innerText = (raw?.token_count || 0).toLocaleString() + ' tokens';
+      $('meta-pg').innerText = raw?.metadata?.page_count || '?';
+      $('meta-sec').innerText = raw?.metadata?.section_count || '?';
+
+      // Tokens animation
+      const o = comp?.original_tokens || 1;
+      const c = comp?.compressed_tokens || 1;
+      const pct = Math.round(100 - (c / o) * 100);
+
+      $('lbl-orig').innerText = o.toLocaleString() + ' Original Length (tokens)';
+      $('lbl-comp').innerText = c.toLocaleString() + ' Final Payload (tokens)';
+
+      $('pill-red').innerText = `↓ ${pct}% noise reduction`;
+      $('tt-red').innerText = `Our extraction heuristic removed ${Math.max(0, o - c).toLocaleString()} boilerplate tokens before sending to the engine, saving context window while keeping semantic meaning.`;
+
+      $('pill-co2').innerText = `-${(comp?.carbon_saved_grams || 0).toFixed(2)}g CO₂ footprint`;
+      $('tt-co2').innerText = `By compressing the document, we saved an estimated ${(comp?.carbon_saved_grams || 0).toFixed(2)} grams of CO2 emissions from the LLM execution.`;
+
+      $('tt-bar').innerText = `This represents a reduction of ${pct}%, shrinking a massive ${o.toLocaleString()}-token file down to ${c.toLocaleString()} tokens of pure signal.`;
+
+      setTimeout(() => {
+        $('token-bar').style.width = Math.max(2, pct) + '%';
+      }, 300);
+    }
+
+    function resetApp() {
+      state.taskId = null; state.result = null;
+      hide('step-3'); show('step-1');
+      $('token-bar').style.width = '0%';
+    }
+
+    function copyResult() {
+      if (!state.result) return;
+      const s = state.result.summary;
+      const t = `${s.headline}\n\nKey Directives:\n${s.key_points.map(x => '— ' + x).join('\n')}\n\nImpact Assessment:\n${s.impact_statement}`;
+      navigator.clipboard.writeText(t);
+      const b = $('btn-copy'); const old = b.innerText;
+      b.innerText = 'Copied to clipboard';
+      setTimeout(() => b.innerText = old, 2500);
+    }
+  </script>
 </body>
+
 </html>

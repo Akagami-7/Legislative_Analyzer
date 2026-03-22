@@ -87,6 +87,7 @@ class CitizenSummary(BaseModel):
     headline:          str
     key_points:        List[str]
     impact_statement:  str
+    overview:          Optional[str] = None
     readability_score: Optional[float] = None   # rishi's scorer
     language:          SupportedLanguage = SupportedLanguage.ENGLISH
 
@@ -100,6 +101,12 @@ class AnalyzeRequest(BaseModel):
     pdf_url:  Optional[str]           = None
     raw_text: Optional[str]           = None
     language: SupportedLanguage       = SupportedLanguage.ENGLISH
+    llm_provider: str                 = "gemini"
+    llm_api_key:  Optional[str]       = None
+    llm_model:          Optional[str]     = None
+    use_scaledown:      bool              = False
+    scaledown_api_key:  Optional[str]     = None
+    hf_token:           Optional[str]     = None
 
 
 class AnalyzeResponse(BaseModel):
@@ -151,6 +158,7 @@ class AnalysisResult(BaseModel):
     key_changes:          List[str]
     affected_groups:      List[str]
     rights_impact:        str
+    overview:             Optional[str] = None
     implementation_date:  str
     tokens_input:         int
     tokens_output:        int
