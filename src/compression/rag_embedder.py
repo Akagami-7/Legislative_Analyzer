@@ -10,6 +10,7 @@ Owner: Akagami
 import json
 import os
 import sys
+import torch
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 import chromadb
@@ -139,17 +140,38 @@ def embed_bill(json_path: str) -> int:
     # Embed in batches of 64
     print(f"   Embedding {len(texts)} sections...")
     batch_size = 32
+    while batch_size > 0:
+        try:
+            test_batch = texts[:batch_size]
+            with torch.no_grad():
+                model.encode(test_batch, batch_size=batch_size)
+
+            print(f"✅ Using batch_size={batch_size}")
+            break
+
+        except RuntimeError as e:
+            if "CUDA out of memory" in str(e):
+                print(f"❌ OOM at batch_size={batch_size}")
+                batch_size = max(1, batch_size // 2)
+                torch.cuda.empty_cache()
+                print(f"🔽 Retrying with batch_size={batch_size}")
+            else:
+                raise e
+
     all_embeddings = []
 
     for i in range(0, len(texts), batch_size):
         batch = texts[i:i + batch_size]
-        embeddings = model.encode(
-            batch,
-            show_progress_bar=False,
-            normalize_embeddings=True   # important for cosine similarity
-        )
+        with torch.no_grad():
+            embeddings = model.encode(
+                batch,
+                batch_size=batch_size,
+                show_progress_bar=False,
+                normalize_embeddings=True
+            )
         all_embeddings.extend(embeddings.tolist())
         print(f"   Batch {i//batch_size + 1}/{(len(texts)-1)//batch_size + 1} done")
+        torch.cuda.empty_cache()
 
     # Store in ChromaDB
     collection.add(
