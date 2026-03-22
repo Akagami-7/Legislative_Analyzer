@@ -5,7 +5,7 @@ from src.shared_schemas import AnalysisResult
 
 SUPPORTED_LANGUAGES = {
     "hi": "Hindi",
-    "te": "Telugu", 
+    "te": "Telugu",
     "ta": "Tamil",
     "bn": "Bengali",
     "mr": "Marathi",
@@ -16,39 +16,75 @@ SUPPORTED_LANGUAGES = {
     "or": "Odia"
 }
 
+MAX_CHARS = 4500  # deep_translator limit is 5000 — stay under it
+
+def safe_translate(text: str, target_lang: str) -> str:
+    """Translate text safely — chunk if too long."""
+    if not text or not text.strip():
+        return text
+
+    translator = GoogleTranslator(source="auto", target=target_lang)
+
+    # If short enough, translate directly
+    if len(text) <= MAX_CHARS:
+        try:
+            result = translator.translate(text)
+            return result if result else text
+        except Exception as e:
+            print(f"  ⚠️  Translation failed: {e} — returning original")
+            return text
+
+    # Split into chunks at sentence boundaries
+    sentences = text.replace(". ", ".|").split("|")
+    chunks = []
+    current = ""
+
+    for sentence in sentences:
+        if len(current) + len(sentence) <= MAX_CHARS:
+            current += sentence + " "
+        else:
+            if current.strip():
+                chunks.append(current.strip())
+            current = sentence + " "
+    if current.strip():
+        chunks.append(current.strip())
+
+    # Translate each chunk
+    translated_chunks = []
+    for chunk in chunks:
+        try:
+            t = GoogleTranslator(source="auto", target=target_lang).translate(chunk)
+            translated_chunks.append(t if t else chunk)
+        except Exception as e:
+            print(f"  ⚠️  Chunk translation failed: {e} — using original")
+            translated_chunks.append(chunk)
+
+    return " ".join(translated_chunks)
+
+
 def translate_result(result: AnalysisResult,
                      target_lang: str = "hi") -> dict:
 
     if target_lang not in SUPPORTED_LANGUAGES:
-        raise ValueError(f"Unsupported language: {target_lang}. "
-                         f"Choose from: {list(SUPPORTED_LANGUAGES.keys())}")
+        raise ValueError(
+            f"Unsupported language: {target_lang}. "
+            f"Choose from: {list(SUPPORTED_LANGUAGES.keys())}"
+        )
 
-    translator = GoogleTranslator(source='auto', target=target_lang)
     lang_name = SUPPORTED_LANGUAGES[target_lang]
-
     print(f"\n🌐 Translating to {lang_name}...")
 
-    # Simple cache dictionary to avoid repeated translations
-    translation_cache = {}
-
-    def cached_translate(text: str) -> str:
-        if text in translation_cache:
-            return translation_cache[text]
-        translated_text = translator.translate(text)
-        translation_cache[text] = translated_text
-        return translated_text
-
     translated = {
-        "bill_id"         : result.bill_id,
-        "language"        : lang_name,
-        "language_code"   : target_lang,
-        "citizen_summary" : cached_translate(result.citizen_summary),
-        "key_changes"     : [cached_translate(c) for c in result.key_changes],
-        "affected_groups" : [cached_translate(g) for g in result.affected_groups[:3]],
-        "rights_impact"   : cached_translate(result.rights_impact),
-        "implementation_date": result.implementation_date,
-        "compression_ratio"  : result.compression_ratio,
-        "carbon_saved_grams" : result.carbon_saved_grams
+        "bill_id"             : result.bill_id,
+        "language"            : lang_name,
+        "language_code"       : target_lang,
+        "citizen_summary"     : safe_translate(result.citizen_summary, target_lang),
+        "key_changes"         : [safe_translate(c, target_lang) for c in result.key_changes],
+        "affected_groups"     : [safe_translate(g, target_lang) for g in result.affected_groups[:3]],
+        "rights_impact"       : safe_translate(result.rights_impact, target_lang),
+        "implementation_date" : result.implementation_date,
+        "compression_ratio"   : result.compression_ratio,
+        "carbon_saved_grams"  : result.carbon_saved_grams
     }
 
     print(f"✅ Translation to {lang_name} complete")

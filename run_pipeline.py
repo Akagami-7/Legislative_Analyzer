@@ -4,6 +4,7 @@ import os
 sys.path.append('.')
 
 from src.shared_schemas import IngestedBill, BillSection
+from src.compression.semantic_chunker import semantic_chunk_bill
 from src.compression.bm25_ranker import rank_and_filter
 from src.compression.extractor import extractive_compress
 from src.compression.prompt_assembler import assemble_prompt
@@ -14,59 +15,59 @@ import tiktoken
 
 enc = tiktoken.get_encoding("cl100k_base")
 
-def fix_sections(data: dict):
-    """
-    Rishi's splitter only detected CHAPTER boundaries.
-    This re-splits each chapter into individual sections
-    using the actual Section numbering inside the text.
-    """
-    import re
-    fixed = []
-    counter = 0
+# def semantic_chunk_bill(data: dict):
+#     """
+#     Rishi's splitter only detected CHAPTER boundaries.
+#     This re-splits each chapter into individual sections
+#     using the actual Section numbering inside the text.
+#     """
+#     import re
+#     fixed = []
+#     counter = 0
 
-    SECTION_PATTERN = re.compile(
-        r'(?=(?:^|\n)\s*'
-        r'(?:\d+\.\s+'          # 1. Short title
-        r'|\d+[A-Z]\.\s+'       # 4A. Special provision  
-        r'|Section\s+\d+'       # Section 4
-        r'))',
-        re.MULTILINE
-    )
+#     SECTION_PATTERN = re.compile(
+#         r'(?=(?:^|\n)\s*'
+#         r'(?:\d+\.\s+'          # 1. Short title
+#         r'|\d+[A-Z]\.\s+'       # 4A. Special provision  
+#         r'|Section\s+\d+'       # Section 4
+#         r'))',
+#         re.MULTILINE
+#     )
 
-    for chapter in data["sections"]:
-        chapter_text = chapter["section_text"]
-        chapter_title = chapter["section_title"]
+#     for chapter in data["sections"]:
+#         chapter_text = chapter["section_text"]
+#         chapter_title = chapter["section_title"]
 
-        # Try to split this chapter into individual sections
-        splits = SECTION_PATTERN.split(chapter_text)
-        splits = [s.strip() for s in splits if len(s.strip()) > 60]
+#         # Try to split this chapter into individual sections
+#         splits = SECTION_PATTERN.split(chapter_text)
+#         splits = [s.strip() for s in splits if len(s.strip()) > 60]
 
-        if len(splits) <= 1:
-            # Could not split further — keep as is
-            fixed.append(BillSection(
-                section_id=chapter["section_id"],
-                section_title=chapter_title,
-                section_text=chapter_text,
-                token_count=len(enc.encode(chapter_text)),
-                page_number=chapter["page_number"]
-            ))
-        else:
-            # Successfully split into individual sections
-            for i, split_text in enumerate(splits):
-                # Extract section number from text start
-                first_line = split_text.split('\n')[0][:60]
-                fixed.append(BillSection(
-                    section_id=f"{chapter['section_id']}_s{i}",
-                    section_title=f"{chapter_title} — {first_line}",
-                    section_text=split_text,
-                    token_count=len(enc.encode(split_text)),
-                    page_number=chapter["page_number"]
-                ))
-                counter += 1
+#         if len(splits) <= 1:
+#             # Could not split further — keep as is
+#             fixed.append(BillSection(
+#                 section_id=chapter["section_id"],
+#                 section_title=chapter_title,
+#                 section_text=chapter_text,
+#                 token_count=len(enc.encode(chapter_text)),
+#                 page_number=chapter["page_number"]
+#             ))
+#         else:
+#             # Successfully split into individual sections
+#             for i, split_text in enumerate(splits):
+#                 # Extract section number from text start
+#                 first_line = split_text.split('\n')[0][:60]
+#                 fixed.append(BillSection(
+#                     section_id=f"{chapter['section_id']}_s{i}",
+#                     section_title=f"{chapter_title} — {first_line}",
+#                     section_text=split_text,
+#                     token_count=len(enc.encode(split_text)),
+#                     page_number=chapter["page_number"]
+#                 ))
+#                 counter += 1
 
-    print(f"\n🔧 Section re-split: {len(data['sections'])} chapters "
-          f"→ {len(fixed)} individual sections")
-    return fixed
+#     print(f"\n🔧 Section re-split: {len(data['sections'])} chapters "
+#           f"→ {len(fixed)} individual sections")
+#     return fixed
 
 def run_pipeline(json_path: str) -> None:
 
@@ -79,7 +80,7 @@ def run_pipeline(json_path: str) -> None:
     with open(json_path, encoding="utf-8", errors="ignore") as f:
         data = json.load(f)
 
-    sections = fix_sections(data)
+    sections = semantic_chunk_bill(data)
     bill = IngestedBill(
         bill_id=data["bill_id"],
         source_url=data["source_url"],
@@ -125,15 +126,21 @@ def run_pipeline(json_path: str) -> None:
     log_compression(bill.bill_id, bill.total_token_count, prompt_tokens)
 
     # ── 6. Claude API Call ────────────────────────────────────
-    result = analyze_with_gemini(
-        prompt,
+    from src.compression.token_logger import track_pipeline_emissions
+
+    result = track_pipeline_emissions(
+        bill.bill_id,
+        bill.total_token_count,
+        prompt_tokens,
+        analyze_with_gemini,      # function to track
+        prompt,                   # its arguments
         bill.total_token_count,
         prompt_tokens
     )
 
     # ── 7. Save Result ────────────────────────────────────────
     output_path = f"result_{bill.bill_id}.json"
-    with open(output_path, "w") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(result.model_dump_json(indent=2))
 
     print(f"\n{'='*60}")

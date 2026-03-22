@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Legislative Analyzer — Citizen's Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════ HEADER ═══════════════════════════════════════ -->
+<header>
+  <div class="logo">
+    <span class="ashoka">🪷</span>
+    <span>Legislative<span class="accent">AI</span></span>
+  </div>
+  <nav>
+    <a href="#analyze">Analyze</a>
+    <a href="#about">About</a>
+    <a href="https://github.com/Akagami-7/Legislative_Analyzer" target="_blank">GitHub</a>
+  </nav>
+</header>
+
+<!-- ═══════════════════════ HERO ═════════════════════════════════════════ -->
+<section class="hero">
+  <h1>Understand <em>Every Bill</em><br>Parliament Passes</h1>
+  <p>
+    Dense legalese, translated into plain language for every Indian citizen —
+    in all 22 scheduled languages.
+  </p>
+</section>
+
+<!-- ═══════════════════════ MAIN ═════════════════════════════════════════ -->
+<main>
+
+  <!-- ── INPUT CARD ─────────────────────────────────────────────────── -->
+  <section class="card" id="analyze">
+    <h2><span class="icon">📄</span> Analyze a Bill or Policy Document</h2>
+
+    <!-- PDF URL -->
+    <div class="form-group">
+      <label for="pdf-url">PDF URL</label>
+      <input
+        type="url"
+        id="pdf-url"
+        placeholder="https://prsindia.org/files/bills_acts/bills_parliament/..."
+      />
+    </div>
+
+    <div class="divider-text">or paste text directly</div>
+
+    <!-- Raw text -->
+    <div class="form-group">
+      <label for="raw-text">Bill Text</label>
+      <textarea
+        id="raw-text"
+        placeholder="Paste the bill, act, or policy document here…"
+      ></textarea>
+    </div>
+
+    <!-- Language selector -->
+    <div class="form-group">
+      <label for="language">Summary Language</label>
+      <select id="language">
+        <option value="en">English</option>
+        <option value="hi">हिन्दी — Hindi</option>
+        <option value="bn">বাংলা — Bengali</option>
+        <option value="te">తెలుగు — Telugu</option>
+        <option value="mr">मराठी — Marathi</option>
+        <option value="ta">தமிழ் — Tamil</option>
+        <option value="ur">اردو — Urdu</option>
+        <option value="gu">ગુજરાતી — Gujarati</option>
+        <option value="kn">ಕನ್ನಡ — Kannada</option>
+        <option value="or">ଓଡ଼ିଆ — Odia</option>
+        <option value="pa">ਪੰਜਾਬੀ — Punjabi</option>
+        <option value="ml">മലയാളം — Malayalam</option>
+        <option value="as">অসমীয়া — Assamese</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary" id="analyze-btn" onclick="submitAnalysis()">
+      Analyze Bill
+    </button>
+  </section>
+
+  <!-- ── RESULTS CARD ────────────────────────────────────────────────── -->
+  <section class="card" id="results">
+
+    <!-- Headline + badge -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem;">
+      <p class="headline" id="res-headline"></p>
+      <span class="badge">✓ Completed</span>
+    </div>
+
+    <!-- Impact statement -->
+    <div class="impact-box" id="res-impact"></div>
+
+    <!-- Key points -->
+    <h2 style="font-size:1rem;margin-bottom:.75rem;">
+      <span class="icon">🔑</span> Key Points
+    </h2>
+    <ul class="key-points" id="res-points"></ul>
+
+    <!-- Readability -->
+    <p style="margin-top:1rem;font-size:.82rem;color:var(--muted);">
+      Readability score: <strong id="res-readability"></strong>
+      &nbsp;·&nbsp; Flesch scale (0–100, higher = easier)
+    </p>
+
+    <!-- Compression metrics -->
+    <h2 style="font-size:1rem;margin-top:1.5rem;margin-bottom:.75rem;">
+      <span class="icon">⚡</span> Token Compression Metrics
+    </h2>
+    <div class="metrics">
+      <div class="metric">
+        <span class="val" id="m-original"></span>
+        <span class="lbl">Original tokens</span>
+      </div>
+      <div class="metric">
+        <span class="val" id="m-compressed"></span>
+        <span class="lbl">Compressed tokens</span>
+      </div>
+      <div class="metric">
+        <span class="val" id="m-ratio"></span>
+        <span class="lbl">Compression ratio</span>
+      </div>
+      <div class="metric">
+        <span class="val green" id="m-carbon"></span>
+        <span class="lbl">Carbon saved (g CO₂)</span>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ── ERROR BOX ───────────────────────────────────────────────────── -->
+  <div class="error-box" id="error-box" style="display:none;"></div>
+
+  <!-- ── ABOUT ───────────────────────────────────────────────────────── -->
+  <section class="card" id="about" style="margin-top:2rem;">
+    <h2><span class="icon">ℹ️</span> About This Project</h2>
+    <p style="line-height:1.7;font-size:.95rem;">
+      <strong>AI Legislative Analyzer</strong> is a capstone project that makes
+      Indian parliamentary bills understandable to ordinary citizens.
+      It uses <em>token compression</em> to shrink 100 000-token legal documents
+      before running any LLM — maximising civic value while minimising
+      energy consumption and carbon output.
+    </p>
+    <p style="margin-top:.9rem;line-height:1.7;font-size:.95rem;">
+      Built by <strong>Akagami</strong> (compression · RAG · LLM),
+      <strong>rishi</strong> (ingestion · OCR · NER), and
+      <strong>AkashSamuel</strong> (API · frontend · async queue).
+    </p>
+  </section>
+
+</main>
+
+<!-- ═══════════════════════ FOOTER ═══════════════════════════════════════ -->
+<footer>
+  <p>
+    <strong>AI Legislative Analyzer</strong> &nbsp;·&nbsp;
+    Citizen's Dashboard v1.0 &nbsp;·&nbsp;
+    <a href="https://github.com/Akagami-7/Legislative_Analyzer" style="color:var(--navy-light);">GitHub</a>
+  </p>
+</footer>
+
+<!-- ═══════════════════════ JS ════════════════════════════════════════════ -->
+<script>
+  // ── config ─────────────────────────────────────────────────────────────
+  const API_BASE = "http://localhost:8000/api/v1";
+  const POLL_INTERVAL_MS = 1500;
+  const MAX_POLLS = 20;
+
+  // ── helpers ────────────────────────────────────────────────────────────
+  const $  = id => document.getElementById(id);
+  const show = id => $(id).style.display = "";
+  const hide = id => $(id).style.display = "none";
+
+  function setLoading(loading) {
+    const btn = $("analyze-btn");
+    btn.disabled = loading;
+    btn.innerHTML = loading
+      ? '<span class="spinner"></span> Analyzing…'
+      : "Analyze Bill";
+  }
+
+  function showError(msg) {
+    const box = $("error-box");
+    box.textContent = "⚠ " + msg;
+    show("error-box");
+  }
+
+  function clearError() { hide("error-box"); }
+
+  // ── render results ─────────────────────────────────────────────────────
+  function renderResults(data) {
+    const s  = data.summary;
+    const cd = data.compressed_document;
+
+    $("res-headline").textContent      = s.headline;
+    $("res-impact").textContent        = s.impact_statement;
+    $("res-readability").textContent   = s.readability_score ?? "N/A";
+
+    const ul = $("res-points");
+    ul.innerHTML = "";
+    (s.key_points || []).forEach(pt => {
+      const li = document.createElement("li");
+      li.textContent = pt;
+      ul.appendChild(li);
+    });
+
+    $("m-original").textContent   = (cd.original_tokens   || 0).toLocaleString();
+    $("m-compressed").textContent = (cd.compressed_tokens || 0).toLocaleString();
+    $("m-ratio").textContent      = ((cd.compression_ratio || 0) * 100).toFixed(1) + "%";
+    $("m-carbon").textContent     = (cd.carbon_saved_grams || 0).toFixed(4);
+
+    const results = $("results");
+    results.classList.add("visible");
+    results.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // ── poll ───────────────────────────────────────────────────────────────
+  async function pollUntilDone(taskId, attempts = 0) {
+    if (attempts >= MAX_POLLS) {
+      setLoading(false);
+      showError("Timed out waiting for result. Please try again.");
+      return;
+    }
+    try {
+      const r    = await fetch(`${API_BASE}/bills/${taskId}`);
+      const data = await r.json();
+
+      if (data.status === "completed") {
+        setLoading(false);
+        renderResults(data);
+      } else if (data.status === "failed") {
+        setLoading(false);
+        showError(data.error || "Pipeline failed.");
+      } else {
+        setTimeout(() => pollUntilDone(taskId, attempts + 1), POLL_INTERVAL_MS);
+      }
+    } catch (e) {
+      setLoading(false);
+      showError("Cannot reach API server. Is it running on port 8000?");
+    }
+  }
+
+  // ── submit ─────────────────────────────────────────────────────────────
+  async function submitAnalysis() {
+    clearError();
+    $("results").classList.remove("visible");
+
+    const pdfUrl  = $("pdf-url").value.trim();
+    const rawText = $("raw-text").value.trim();
+    const lang    = $("language").value;
+
+    if (!pdfUrl && !rawText) {
+      showError("Please provide a PDF URL or paste bill text.");
+      return;
+    }
+
+    const body = { language: lang };
+    if (pdfUrl)   body.pdf_url  = pdfUrl;
+    if (rawText)  body.raw_text = rawText;
+
+    setLoading(true);
+
+    try {
+      const r    = await fetch(`${API_BASE}/analyze`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(body),
+      });
+
+      if (!r.ok) {
+        const err = await r.json();
+        throw new Error(err.detail || `HTTP ${r.status}`);
+      }
+
+      const { task_id } = await r.json();
+      pollUntilDone(task_id);
+
+    } catch (e) {
+      setLoading(false);
+      showError(e.message || "Unknown error.");
+    }
+  }
+</script>
+
+</body>
+</html>
