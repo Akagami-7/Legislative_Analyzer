@@ -22,21 +22,64 @@ HEADERS = {
 }
 
 KNOWN_BILLS = {
+    # ── Already working ────────────────────────────
     "dpdp": "https://egazette.gov.in/WriteReadData/2023/247654.pdf",
     "dpdp act": "https://egazette.gov.in/WriteReadData/2023/247654.pdf",
     "dpdp act 2023": "https://egazette.gov.in/WriteReadData/2023/247654.pdf",
     "digital personal data protection": "https://egazette.gov.in/WriteReadData/2023/247654.pdf",
+
     "bharatiya nyaya sanhita": "https://egazette.gov.in/WriteReadData/2023/248078.pdf",
     "bns 2023": "https://egazette.gov.in/WriteReadData/2023/248078.pdf",
+
     "bharatiya nagarik suraksha": "https://egazette.gov.in/WriteReadData/2023/248079.pdf",
     "bnss 2023": "https://egazette.gov.in/WriteReadData/2023/248079.pdf",
+
     "bharatiya sakshya": "https://egazette.gov.in/WriteReadData/2023/248080.pdf",
     "bsb 2023": "https://egazette.gov.in/WriteReadData/2023/248080.pdf",
+
     "telecommunications": "https://egazette.gov.in/WriteReadData/2023/247860.pdf",
     "telecommunications act 2023": "https://egazette.gov.in/WriteReadData/2023/247860.pdf",
+
+    "consumer protection act 2019": "https://egazette.gov.in/WriteReadData/2019/210422.pdf",
+    "consumer protection": "https://egazette.gov.in/WriteReadData/2019/210422.pdf",
+
+    "forest rights act 2006": "https://egazette.gov.in/WriteReadData/2007/E_4_2007_429.pdf",
+    "forest rights": "https://egazette.gov.in/WriteReadData/2007/E_4_2007_429.pdf",
+
+    "code on wages 2019": "https://egazette.gov.in/WriteReadData/2019/210356.pdf",
+    "code on wages": "https://egazette.gov.in/WriteReadData/2019/210356.pdf",
+
+    # ── Verified prsindia acts_parliament URLs ─────
+    "rti act 2005": "https://prsindia.org/files/bills_acts/acts_parliament/2005/the-right-to-information-act-2005.pdf",
+    "rti act": "https://prsindia.org/files/bills_acts/acts_parliament/2005/the-right-to-information-act-2005.pdf",
+    "right to information": "https://prsindia.org/files/bills_acts/acts_parliament/2005/the-right-to-information-act-2005.pdf",
+
+    "land acquisition act 2013": "https://prsindia.org/files/bills_acts/acts_parliament/2013/larr-act,-2013.pdf",
+    "land acquisition": "https://prsindia.org/files/bills_acts/acts_parliament/2013/larr-act,-2013.pdf",
+
+    "competition act 2002": "https://prsindia.org/files/bills_acts/acts_parliament/2023/The%20Competition%20(Amendment)%20Act,%202023.pdf",
+    "competition act": "https://prsindia.org/files/bills_acts/acts_parliament/2023/The%20Competition%20(Amendment)%20Act,%202023.pdf",
+
+    "right to education act 2009": "https://prsindia.org/files/bills_acts/bills_parliament/2008/bill206_20090212206_Right_to_Education_Bill_2005.pdf",
+    "right to education": "https://prsindia.org/files/bills_acts/bills_parliament/2008/bill206_20090212206_Right_to_Education_Bill_2005.pdf",
+
+    "industrial relations code 2020": "https://egazette.gov.in/WriteReadData/2020/222240.pdf",
+    "industrial relations": "https://egazette.gov.in/WriteReadData/2020/222240.pdf",
+    "industrial relations code": "https://egazette.gov.in/WriteReadData/2020/222240.pdf",
+
+    "national medical commission act 2019": "https://egazette.gov.in/WriteReadData/2019/210360.pdf",
+    "national medical commission": "https://egazette.gov.in/WriteReadData/2019/210360.pdf",
+
+    "it act 2000": "https://egazette.gov.in/WriteReadData/2000/E_21_2000_429.pdf",
+    "it act": "https://egazette.gov.in/WriteReadData/2000/E_21_2000_429.pdf",
+    "information technology act": "https://egazette.gov.in/WriteReadData/2000/E_21_2000_429.pdf",
+
+    "persons with disabilities act 2016": "https://egazette.gov.in/WriteReadData/2016/E_49_2016_429.pdf",
+    "persons with disabilities": "https://egazette.gov.in/WriteReadData/2016/E_49_2016_429.pdf",
+
+    "jan vishwas act 2023": "https://egazette.gov.in/WriteReadData/2023/247399.pdf",
+    "jan vishwas": "https://egazette.gov.in/WriteReadData/2023/247399.pdf",
 }
-
-
 # ════════════════════════════════════════════════════
 # MAIN ENTRY POINT
 # ════════════════════════════════════════════════════
