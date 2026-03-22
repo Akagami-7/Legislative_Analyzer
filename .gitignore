@@ -23,3 +23,13 @@ compression_log_*.json
 ingested_*.json
 ingested_bill.json
 emissions_*.csv
+
+# Vector DB
+chroma_db/
+chroma_db/**
+
+# Model cache
+.cache/
+huggingface/
+
+
