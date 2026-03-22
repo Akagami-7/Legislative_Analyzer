@@ -34,10 +34,22 @@ app.include_router(analyze_router, prefix="/api/v1", tags=["analyze"])
 app.include_router(bills_router,   prefix="/api/v1", tags=["bills"])
 
 
-@app.get("/", tags=["health"])
-def root():
-    return {"status": "ok", "service": "AI Legislative Analyzer v1.0"}
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+import os
 
+frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend"))
+
+if os.path.exists(frontend_path):
+    app.mount("/assets", StaticFiles(directory=frontend_path), name="frontend_assets")
+
+    @app.get("/", tags=["frontend"])
+    def serve_frontend():
+        return FileResponse(os.path.join(frontend_path, "index.html"))
+else:
+    @app.get("/", tags=["health"])
+    def root():
+        return {"status": "ok", "service": "AI Legislative Analyzer v1.0"}
 
 @app.get("/health", tags=["health"])
 def health():
