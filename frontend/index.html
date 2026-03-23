@@ -1405,9 +1405,13 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)
         });
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.detail || "Pipeline initiation failed");
 
+        if (!r.ok) {
+          const txt = await r.text();
+          throw new Error(`Server Error (${r.status}): ${txt.substring(0, 100)}`);
+        }
+
+        const d = await r.json();
         state.taskId = d.task_id;
         pollTask(state.taskId);
 
