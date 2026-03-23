@@ -91,16 +91,21 @@ def real_run_pipeline(task_id: str, request: AnalyzeRequest) -> None:
 
     try:
         # ── Step 1: Get PDF ───────────────────────────────────
+        print(f"DEBUG: Step 1 - Downloading PDF from {request.pdf_url[:50]}...")
         if request.pdf_url:
             pdf_path = scrape_bill(request.pdf_url)
         else:
             raise ValueError("pdf_url is required")
+        print(f"DEBUG: Step 1 - Success (Local path: {pdf_path})")
 
         # ── Step 2: Ingest ────────────────────────────────────
+        print(f"DEBUG: Step 2 - Parsing PDF (OCR might trigger if scanned)...")
         parsed = parse_pdf(pdf_path)
         if parsed["is_scanned"]:
+            print("DEBUG: Step 2 - OCR Triggered (This is slow & heavy)...")
             parsed["pages"] = run_ocr(pdf_path)
 
+        print(f"DEBUG: Step 2 - Splitting {len(parsed['pages'])} pages into sections...")
         sections = split_sections(parsed["pages"])
         bill_id_slug = task_id.replace("-", "_")[:30]
 
@@ -114,12 +119,9 @@ def real_run_pipeline(task_id: str, request: AnalyzeRequest) -> None:
             tables=[]
         )
 
-        # Save ingested JSON temporarily
-        ingested_path = f"ingested_{bill_id_slug}.json"
-        with open(ingested_path, "w", encoding="utf-8") as f:
-            f.write(ingested.model_dump_json(indent=2))
+        print(f"DEBUG: Step 2 - Success (Tokens: {ingested.total_token_count})")
 
-        # ── Step 3: Compress ──────────────────────────────────
+        print(f"DEBUG: Step 3 - Tokens/BM25 Compression...")
         data = json.loads(ingested.model_dump_json())
         fixed_sections = fix_sections(data)
 
@@ -133,20 +135,11 @@ def real_run_pipeline(task_id: str, request: AnalyzeRequest) -> None:
             tables=[]
         )
 
-        # Dynamic params
-        section_count = len(bill.sections)
-        if section_count < 50:
-            keep_ratio = 0.7
-            sentences  = 4
-        elif section_count < 200:
-            keep_ratio = 0.5
-            sentences  = 3
-        else:
-            keep_ratio = 0.4
-            sentences  = 2
+        filtered   = rank_and_filter(bill.sections, keep_ratio=0.5)
+        compressed = extractive_compress(filtered, sentences_per_section=3)
 
-        filtered   = rank_and_filter(bill.sections, keep_ratio=keep_ratio)
-        compressed = extractive_compress(filtered, sentences_per_section=sentences)
+        prompt, prompt_tokens = assemble_prompt(bill, compressed)
+        print(f"DEBUG: Step 3 - Success (Prompt Tokens: {prompt_tokens})")
 
         # Get ScaleDown settings from request
         use_scaledown     = getattr(request, 'use_scaledown', False)
@@ -182,19 +175,20 @@ def real_run_pipeline(task_id: str, request: AnalyzeRequest) -> None:
         # ── Step 4: LLM Call ──────────────────────────────────
         provider = getattr(request, "llm_provider", "gemini")
         api_key  = getattr(request, "llm_api_key", None)
-        print(f"DEBUG: Pipeline Step 4 - Provider: {provider}, Key provided: {'YES' if api_key else 'NO'}")
+        print(f"DEBUG: Step 4 - Calling {provider} (Key: {'YES' if api_key else 'NO'}, model: {getattr(request, 'llm_model', 'default')})...")
 
         analysis = track_pipeline_emissions(
             bill.bill_id,
             bill.total_token_count,
             prompt_tokens,
-            analyze_with_llm,   # <-- IMPORTANT: unified wrapper (not gemini directly)
+            analyze_with_llm, 
             prompt,
             bill.total_token_count,
             prompt_tokens,
             provider=provider,
             api_key=api_key
         )
+        print(f"DEBUG: Step 4 - Success (LLM Response received)")
 
         # ── Step 5: Translate if needed ───────────────────────
         lang_code = request.language.value
