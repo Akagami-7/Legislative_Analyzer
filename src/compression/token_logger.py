@@ -59,6 +59,9 @@ def track_pipeline_emissions(bill_id: str,
             analyze_with_gemini, prompt, orig_tokens, comp_tokens
         )
     """
+    if os.getenv("RENDER"):
+        print("🌿 Render detected: Skipping CodeCarbon tracking to save memory/time.")
+        return pipeline_fn(*args, **kwargs)
 
     tracker = EmissionsTracker(
         project_name=f"legislative_analyzer_{bill_id}",

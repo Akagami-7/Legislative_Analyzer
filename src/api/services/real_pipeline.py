@@ -182,6 +182,7 @@ def real_run_pipeline(task_id: str, request: AnalyzeRequest) -> None:
         # ── Step 4: LLM Call ──────────────────────────────────
         provider = getattr(request, "llm_provider", "gemini")
         api_key  = getattr(request, "llm_api_key", None)
+        print(f"DEBUG: Pipeline Step 4 - Provider: {provider}, Key provided: {'YES' if api_key else 'NO'}")
 
         analysis = track_pipeline_emissions(
             bill.bill_id,
