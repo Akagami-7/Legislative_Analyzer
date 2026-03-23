@@ -59,22 +59,30 @@ def track_pipeline_emissions(bill_id: str,
             analyze_with_gemini, prompt, orig_tokens, comp_tokens
         )
     """
-    if os.getenv("RENDER"):
-        print("🌿 Render detected: Skipping CodeCarbon tracking to save memory/time.")
-        return pipeline_fn(*args, **kwargs)
+    tracker_started = False
+    try:
+        tracker = EmissionsTracker(
+            project_name=f"legislative_analyzer_{bill_id}",
+            output_dir=".",
+            output_file=f"emissions_{bill_id}.csv",
+            log_level="error",
+            save_to_file=True,
+            save_to_api=False
+        )
+        tracker.start()
+        tracker_started = True
+    except Exception as e:
+        print(f"🌿 CodeCarbon: Hardware tracking disabled or failed ({str(e)}). Proceeding with estimate.")
 
-    tracker = EmissionsTracker(
-        project_name=f"legislative_analyzer_{bill_id}",
-        output_dir=".",
-        output_file=f"emissions_{bill_id}.csv",
-        log_level="error",        # suppress verbose output
-        save_to_file=True,
-        save_to_api=False
-    )
-
-    tracker.start()
     result = pipeline_fn(*args, **kwargs)
-    emissions_kg = tracker.stop()   # returns kg CO2
+
+    if tracker_started:
+        try:
+            emissions_kg = tracker.stop()
+        except:
+            emissions_kg = None
+    else:
+        emissions_kg = None
 
     if emissions_kg is not None:
         emissions_grams   = round(emissions_kg * 1000, 4)
