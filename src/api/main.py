@@ -16,7 +16,7 @@ from src.api.routes.models import router as models_router
 app = FastAPI(
     title       = "AI Legislative Analyzer API",
     description = "Citizen's Dashboard — plain-language summaries of Indian parliamentary bills.",
-    version     = "1.0.0",
+    version     = "2.0.0",
 )
 app.include_router(models_router, prefix="/api/v1", tags=["models"])
 
