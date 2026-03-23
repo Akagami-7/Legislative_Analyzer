@@ -7,11 +7,15 @@ GET /models/providers   — list all supported providers
 
 from fastapi import APIRouter, Query
 from typing import Optional
+from pydantic import BaseModel
 from src.compression.multi_llm_client import (
     get_available_models,
     SUPPORTED_PROVIDERS,
     DEFAULT_MODELS
 )
+
+class ModelRequest(BaseModel):
+    api_key: Optional[str] = None
 
 router = APIRouter()
 
@@ -61,11 +65,16 @@ def list_providers():
     }
 
 
-@router.get("/models/{provider}")
+@router.post("/models/{provider}")
 def get_models_for_provider(
     provider: str,
-    api_key: Optional[str] = Query(default=None)
+    request: ModelRequest
 ):
+    """
+    Fetch available models for a provider dynamically.
+    Uses POST to keep API keys out of the URL.
+    """
+    api_key = request.api_key
     """
     Fetch available models for a provider dynamically.
     Requires API key to call provider's model list endpoint.

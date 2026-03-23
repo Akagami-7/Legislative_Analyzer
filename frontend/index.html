@@ -1282,10 +1282,13 @@
       if (btn) { btn.innerText = 'Connecting...'; btn.disabled = true; }
 
       let url = `${API}/models/${pid}`;
-      if (key) url += `?api_key=${encodeURIComponent(key)}`;
 
       try {
-        const res = await fetch(url);
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_key: key })
+        });
 
         if (btn) { btn.innerText = 'Load Models'; btn.disabled = false; }
 
