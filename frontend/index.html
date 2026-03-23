@@ -1421,7 +1421,10 @@
     }
 
     async function pollTask(tid, att = 0) {
-      if (att > 90) { handleError("Server operation timed out (180s). Large PDFs may take longer; try refresh."); return; }
+      if (att > 90) {
+        handleError("Server operation timed out (180s). Large PDFs may take longer; please refresh or check back later.");
+        return;
+      }
       try {
         const r = await fetch(`${API}/bills/${tid}`);
         const d = await r.json();
