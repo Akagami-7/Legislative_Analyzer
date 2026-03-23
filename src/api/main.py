@@ -20,7 +20,30 @@ app = FastAPI(
 )
 app.include_router(models_router, prefix="/api/v1", tags=["models"])
 
-# ── CORS (allow the Next.js frontend on any localhost port) ──────────────────
+# ── Middleware ───────────────────────────────────────────────────────────────
+@app.middleware("http")
+async def log_requests(request, call_next):
+    from fastapi import Request
+    import time
+    
+    start_time = time.time()
+    method = request.method
+    path = request.url.path
+    
+    print(f"--> Incoming {method} to {path}")
+    
+    try:
+        response = await call_next(request)
+        duration = time.time() - start_time
+        status   = response.status_code
+        print(f"<-- Response {status} for {method} {path} ({duration:.3f}s)")
+        return response
+    except Exception as e:
+        print(f"!!! CRASH during {method} {path}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise e
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins     = ["*"],
