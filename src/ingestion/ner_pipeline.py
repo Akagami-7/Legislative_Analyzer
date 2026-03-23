@@ -1,3 +1,6 @@
+import re
+import spacy
+
 _nlp = None
 
 def get_nlp():
