@@ -14,11 +14,8 @@ import json
 import os
 import sys
 import gc
-import torch
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
-import chromadb
-from sentence_transformers import SentenceTransformer
+# import torch  <-- Moved inside _get_embed_model
+# from sentence_transformers import SentenceTransformer <-- Moved inside _get_embed_model
 from typing import List, Optional
 import tiktoken
 
@@ -60,6 +57,9 @@ def _get_embed_model() -> SentenceTransformer:
     Tries primary → secondary → tertiary.
     """
     global _embed_model, _loaded_model_name
+
+    import torch
+    from sentence_transformers import SentenceTransformer
 
     if _embed_model is not None:
         return _embed_model
