@@ -8,6 +8,13 @@ def log_compression(bill_id: str,
                     compressed_tokens: int) -> dict:
 
     ratio = 1 - (compressed_tokens / max(original_tokens, 1))
+    
+    # Calculate content-only reduction for better clarity with small docs
+    # (Assuming prompt overhead is roughly 300 tokens)
+    estimated_overhead = 300
+    content_tokens = max(0, compressed_tokens - estimated_overhead)
+    content_ratio  = 1 - (content_tokens / max(original_tokens, 1))
+
     cost_naive       = round(original_tokens   * 0.000003, 4)
     cost_compressed  = round(compressed_tokens * 0.000003, 4)
 
@@ -17,6 +24,7 @@ def log_compression(bill_id: str,
         "original_tokens"    : original_tokens,
         "compressed_tokens"  : compressed_tokens,
         "reduction_percent"  : round(ratio * 100, 2),
+        "content_reduction"  : round(content_ratio * 100, 2),
         "cost_naive_usd"     : cost_naive,
         "cost_compressed_usd": cost_compressed,
         "cost_saved_usd"     : round(cost_naive - cost_compressed, 4),
@@ -33,8 +41,9 @@ def log_compression(bill_id: str,
     print("="*50)
     print(f"  Bill           : {bill_id}")
     print(f"  Original       : {original_tokens:,} tokens")
-    print(f"  Compressed     : {compressed_tokens:,} tokens")
-    print(f"  Reduction      : {report['reduction_percent']}%")
+    print(f"  Compressed     : {compressed_tokens:,} tokens (Inc. prompt overhead)")
+    print(f"  Content Redux  : {report['content_reduction']}% (Doc only)")
+    print(f"  Total Redux    : {report['reduction_percent']}%")
     print(f"  Cost (naive)   : ${cost_naive}")
     print(f"  Cost (ours)    : ${cost_compressed}")
     print(f"  Saved          : ${report['cost_saved_usd']}")
@@ -60,19 +69,24 @@ def track_pipeline_emissions(bill_id: str,
         )
     """
     tracker_started = False
-    try:
-        tracker = EmissionsTracker(
-            project_name=f"legislative_analyzer_{bill_id}",
-            output_dir=".",
-            output_file=f"emissions_{bill_id}.csv",
-            log_level="error",
-            save_to_file=True,
-            save_to_api=False
-        )
-        tracker.start()
-        tracker_started = True
-    except Exception as e:
-        print(f"🌿 CodeCarbon: Hardware tracking disabled or failed ({str(e)}). Proceeding with estimate.")
+    enabled = os.getenv("CODECARBON_ENABLED", "true").lower() == "true"
+    
+    if enabled:
+        try:
+            tracker = EmissionsTracker(
+                project_name=f"legislative_analyzer_{bill_id}",
+                output_dir=".",
+                output_file=f"emissions_{bill_id}.csv",
+                log_level="error",
+                save_to_file=True,
+                save_to_api=False
+            )
+            tracker.start()
+            tracker_started = True
+        except Exception as e:
+            print(f"🌿 CodeCarbon: Hardware tracking disabled or failed ({str(e)}). Proceeding with estimate.")
+    else:
+        print(f"🌿 CodeCarbon: Tracking disabled via environment variable.")
 
     result = pipeline_fn(*args, **kwargs)
 

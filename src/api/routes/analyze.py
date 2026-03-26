@@ -8,7 +8,7 @@ Owner: AkashSamuel (wired by Akagami)
 import uuid
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 
-from src.shared_schemas import AnalyzeRequest, AnalyzeResponse, BillStatus
+from src.shared_schemas import AnalyzeRequest, AnalyzeResponse, BillStatus, BillDetailResponse
 from src.api.services.real_pipeline import real_run_pipeline, task_store
 
 router = APIRouter()

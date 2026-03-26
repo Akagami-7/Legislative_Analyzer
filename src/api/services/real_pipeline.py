@@ -121,22 +121,36 @@ def real_run_pipeline(task_id: str, request: AnalyzeRequest) -> None:
 
         print(f"DEBUG: Step 2 - Success (Tokens: {ingested.total_token_count})")
 
-        print(f"DEBUG: Step 3 - Tokens/BM25 Compression...")
-        data = json.loads(ingested.model_dump_json())
-        fixed_sections = fix_sections(data)
+        COMPRESSION_THRESHOLD = 500
+        if ingested.total_token_count < COMPRESSION_THRESHOLD:
+            print(f"DEBUG: Step 3 - Small document ({ingested.total_token_count} tokens) — Skipping compression.")
+            bill = IngestedBill(
+                bill_id=ingested.bill_id,
+                source_url=ingested.source_url,
+                page_count=ingested.page_count,
+                sections=fix_sections(json.loads(ingested.model_dump_json())),
+                total_token_count=ingested.total_token_count,
+                has_tables=ingested.has_tables,
+                tables=[]
+            )
+            compressed = bill.sections
+        else:
+            print(f"DEBUG: Step 3 - Tokens/BM25 Compression...")
+            data = json.loads(ingested.model_dump_json())
+            fixed_sections = fix_sections(data)
 
-        bill = IngestedBill(
-            bill_id=ingested.bill_id,
-            source_url=ingested.source_url,
-            page_count=ingested.page_count,
-            sections=fixed_sections,
-            total_token_count=sum(s.token_count for s in fixed_sections),
-            has_tables=ingested.has_tables,
-            tables=[]
-        )
+            bill = IngestedBill(
+                bill_id=ingested.bill_id,
+                source_url=ingested.source_url,
+                page_count=ingested.page_count,
+                sections=fixed_sections,
+                total_token_count=sum(s.token_count for s in fixed_sections),
+                has_tables=ingested.has_tables,
+                tables=[]
+            )
 
-        filtered   = rank_and_filter(bill.sections, keep_ratio=0.5)
-        compressed = extractive_compress(filtered, sentences_per_section=3)
+            filtered   = rank_and_filter(bill.sections, keep_ratio=0.5)
+            compressed = extractive_compress(filtered, sentences_per_section=3)
 
         prompt, prompt_tokens = assemble_prompt(bill, compressed)
         print(f"DEBUG: Step 3 - Success (Prompt Tokens: {prompt_tokens})")
@@ -177,17 +191,25 @@ def real_run_pipeline(task_id: str, request: AnalyzeRequest) -> None:
         api_key  = getattr(request, "llm_api_key", None)
         print(f"DEBUG: Step 4 - Calling {provider} (Key: {'YES' if api_key else 'NO'}, model: {getattr(request, 'llm_model', 'default')})...")
 
-        analysis = track_pipeline_emissions(
-            bill.bill_id,
-            bill.total_token_count,
-            prompt_tokens,
-            analyze_with_llm, 
-            prompt,
-            bill.total_token_count,
-            prompt_tokens,
-            provider=provider,
-            api_key=api_key
-        )
+        try:
+            analysis = track_pipeline_emissions(
+                bill.bill_id,
+                bill.total_token_count,
+                prompt_tokens,
+                analyze_with_llm, 
+                prompt,
+                bill.total_token_count,
+                prompt_tokens,
+                provider=provider,
+                api_key=api_key
+            )
+        except ValueError as ve:
+            # Re-raise with same message if it already has our pretty prefix
+            if str(ve).startswith("⚠️"): raise
+            raise ValueError(f"⚠️ LLM Error: {str(ve)}")
+        except Exception as e:
+            print(f"ERROR: LLM matching failed: {e}")
+            raise ValueError(f"⚠️ Backend LLM failure: {str(e)}")
         print(f"DEBUG: Step 4 - Success (LLM Response received)")
 
         # ── Step 5: Translate if needed ───────────────────────
@@ -257,8 +279,11 @@ def real_run_pipeline(task_id: str, request: AnalyzeRequest) -> None:
         )
 
         # Cleanup temp files
-        if os.path.exists(ingested_path):
-            os.remove(ingested_path)
+        if 'pdf_path' in locals() and pdf_path and os.path.exists(pdf_path):
+            try:
+                os.remove(pdf_path)
+            except Exception as e:
+                print(f"DEBUG: Could not cleanup PDF at {pdf_path}: {e}")
 
     except Exception as exc:
         task_store[task_id] = BillDetailResponse(

@@ -607,41 +607,51 @@ def _analyze_groq(prompt: str,
             "Get a free key at https://console.groq.com"
         )
 
+    import time
     selected_model = model or DEFAULT_MODELS["groq"]
+    max_retries = 2
+    retry_delay = 2  # seconds
 
-    try:
-        client   = Groq(api_key=key)
-        response = client.chat.completions.create(
-            model=selected_model,
-            temperature=0.1,
-            max_tokens=2048,
-            messages=[{
-                "role"   : "user",
-                "content": prompt + TASK_INSTRUCTION
-            }]
-        )
-    except Exception as e:
-        err = str(e)
-        if "401" in err or "invalid" in err.lower():
-            raise ValueError(
-                "⚠️ Invalid Groq API key. "
-                "Get a free key at https://console.groq.com"
+    for attempt in range(max_retries + 1):
+        try:
+            client   = Groq(api_key=key)
+            response = client.chat.completions.create(
+                model=selected_model,
+                temperature=0.1,
+                max_tokens=2048,
+                messages=[{
+                    "role"   : "user",
+                    "content": prompt + TASK_INSTRUCTION
+                }]
             )
-        elif "429" in err or "rate" in err.lower():
-            raise ValueError(
-                "⚠️ Groq rate limit hit. "
-                "Wait 1 minute and retry, or switch to llama-3.1-8b-instant (faster limits)"
-            )
-        elif "model" in err.lower() and "not found" in err.lower():
-            raise ValueError(
-                f"⚠️ Model '{selected_model}' not available on Groq. "
-                f"Try: llama-3.3-70b-versatile or llama-3.1-8b-instant"
-            )
-        else:
-            raise ValueError(f"⚠️ Groq error: {err[:200]}")
+            text = response.choices[0].message.content
+            return _parse_json_result(text, orig_tokens, comp_tokens)
 
-    text = response.choices[0].message.content
-    return _parse_json_result(text, orig_tokens, comp_tokens)
+        except Exception as e:
+            err = str(e)
+            if ("429" in err or "rate" in err.lower()) and attempt < max_retries:
+                print(f"⚠️ Groq rate limit hit. Retrying in {retry_delay}s (Attempt {attempt+1}/{max_retries})...")
+                time.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
+                continue
+            
+            if "401" in err or "invalid" in err.lower():
+                raise ValueError(
+                    "⚠️ Invalid Groq API key. "
+                    "Get a free key at https://console.groq.com"
+                )
+            elif "429" in err or "rate" in err.lower():
+                raise ValueError(
+                    "⚠️ Groq rate limit hit. "
+                    "Wait 1 minute and retry, or switch to llama-3.1-8b-instant (faster limits)"
+                )
+            elif "model" in err.lower() and "not found" in err.lower():
+                raise ValueError(
+                    f"⚠️ Model '{selected_model}' not available on Groq. "
+                    f"Try: llama-3.3-70b-versatile or llama-3.1-8b-instant"
+                )
+            else:
+                raise ValueError(f"⚠️ Groq error: {err[:200]}")
 
 
 def _analyze_ollama(prompt: str,
