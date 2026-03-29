@@ -94,8 +94,7 @@ def compress_with_scaledown(text: str,
     payload = {
         "context": text,
         "prompt": (
-            "Analyze this Indian parliamentary bill for citizen impact, "
-            "key changes, affected groups, and rights implications."
+            "Compress the following text by removing redundancy. Do NOT add new information. Preserve meaning exactly."
         ),
         "model": scaledown_model,
         "scaledown": {
@@ -153,11 +152,26 @@ def compress_with_scaledown(text: str,
     # ScaleDown wraps results in a "results" object + root tokens
     results_obj       = result.get("results", {})
     compressed_text   = results_obj.get("compressed_prompt", text)
-    compressed_tokens = result.get("total_compressed_tokens",
-                                   len(enc.encode(compressed_text)))
-    original_tokens   = result.get("total_original_tokens", original_tokens)
+    if not compressed_text or not compressed_text.strip():
+        print("   ⚠️ Empty ScaleDown output → using original")
+        compressed_text = text
+
+    compressed_tokens = result.get(
+        "total_compressed_tokens",
+        len(enc.encode(compressed_text))
+    )
+
+    original_tokens = result.get(
+        "total_original_tokens",
+        original_tokens
+    )
+
+    if compressed_tokens >= original_tokens:
+        print("   ⚠️ ScaleDown expanded text → reverting to original")
+        compressed_text   = text
+        compressed_tokens = original_tokens
     
-    reduction         = round(
+    reduction = round(
         (1 - compressed_tokens / max(original_tokens, 1)) * 100, 2
     )
 

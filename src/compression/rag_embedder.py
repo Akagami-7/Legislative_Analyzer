@@ -201,7 +201,7 @@ def embed_bill(json_path: str) -> int:
             continue
 
         # multilingual-e5-base needs "passage: " prefix for passages
-        if _loaded_model_name == "intfloat/multilingual-e5-base":
+        if _loaded_model_name and _loaded_model_name == "intfloat/multilingual-e5-base":
             embed_text = f"passage: {text[:1000]}"
         else:
             embed_text = text[:1000]

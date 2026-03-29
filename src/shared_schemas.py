@@ -5,6 +5,7 @@ Team contract — Pydantic models shared across all three modules.
 ALL 3 MEMBERS review changes before merging to dev.
 
 Owner: AkashSamuel (initial creation)
+UPDATED: Synchronized with multi_llm_client, translator, and pipeline modules
 """
 
 
@@ -21,6 +22,7 @@ class BillStatus(str, Enum):
     PENDING   = "pending"
     PROCESSING = "processing"
     COMPLETED  = "completed"
+    DONE       = "done"  # Alternative for completed
     FAILED     = "failed"
 
 
@@ -54,13 +56,12 @@ class SupportedLanguage(str, Enum):
 # ─────────────────────────────────────────────
 
 class RawDocument(BaseModel):
-    """Output of rishi's ingestion pipeline."""
-    doc_id:        str
-    source_url:    Optional[str]   = None
-    raw_text:      str
-    token_count:   int
-    language_hint: SupportedLanguage = SupportedLanguage.ENGLISH
-    metadata:      dict            = Field(default_factory=dict)
+    bill_id:        str
+    source_url:     Optional[str] = None
+    raw_text:       str
+    token_count:    int
+    language_hint:  SupportedLanguage = SupportedLanguage.ENGLISH
+    metadata:       dict = Field(default_factory=dict)
 
 
 # ─────────────────────────────────────────────
@@ -68,28 +69,27 @@ class RawDocument(BaseModel):
 # ─────────────────────────────────────────────
 
 class CompressedDocument(BaseModel):
-    """Output of Akagami's token-compression pipeline."""
-    doc_id:              str
+    bill_id:             str
     compressed_text:     str
     original_tokens:     int
     compressed_tokens:   int
-    compression_ratio:   float          # compressed / original
+    compression_ratio:   float
     carbon_saved_grams:  Optional[float] = None
 
 
 # ─────────────────────────────────────────────
 # LLM SUMMARY  (Akagami's LLM step → AkashSamuel displays)
+# ✅ SYNCHRONIZED: Uses key_points (not key_changes) for consistency
 # ─────────────────────────────────────────────
 
 class CitizenSummary(BaseModel):
-    """Plain-language summary returned by the LLM."""
-    doc_id:            str
-    headline:          str
-    key_points:        List[str]
-    impact_statement:  str
-    overview:          Optional[str] = None
-    readability_score: Optional[float] = None   # rishi's scorer
-    language:          SupportedLanguage = SupportedLanguage.ENGLISH
+    bill_id:            str
+    headline:           str
+    key_points:         List[str]           # ✅ SYNCED with multi_llm_client output
+    impact_statement:   str
+    overview:           Optional[str] = None
+    readability_score:  Optional[float] = None
+    language:           SupportedLanguage = SupportedLanguage.ENGLISH
 
 
 # ─────────────────────────────────────────────
@@ -125,6 +125,7 @@ class BillDetailResponse(BaseModel):
     summary:            Optional[CitizenSummary]    = None
     error:              Optional[str]               = None
 
+
 # ─────────────────────────────────────────────
 # INGESTION INTERNALS  (Rishi → Akagami pipeline)
 # Added for real pipeline integration — v1.0
@@ -149,18 +150,35 @@ class IngestedBill(BaseModel):
 
 
 # ─────────────────────────────────────────────
-# COMPRESSION OUTPUT  (Akagami's AnalysisResult)
+# LLM OUTPUT  (direct from multi_llm_client.py)
+# ✅ SYNCHRONIZED: Matches TASK_INSTRUCTION in multi_llm_client.py
 # ─────────────────────────────────────────────
 
 class AnalysisResult(BaseModel):
-    bill_id:              str
-    citizen_summary:      str
-    key_changes:          List[str]
-    affected_groups:      List[str]
-    rights_impact:        str
-    overview:             Optional[str] = None
-    implementation_date:  str
-    tokens_input:         int
-    tokens_output:        int
-    compression_ratio:    float
-    carbon_saved_grams:   float
+    """Output from LLM analysis (from multi_llm_client.py)"""
+    bill_id: str
+    citizen_summary: str  # ✅ SYNCED: Detailed narrative explanation
+    key_changes: List[str]  # ✅ SYNCED: 5 major changes with detailed 3-4 sentence explanations
+    affected_groups: List[str]  # ✅ SYNCED: Groups affected by bill
+    rights_impact: str  # ✅ SYNCED: Impact on fundamental rights
+    overview: Optional[str] = None  # ✅ SYNCED: Concluding narrative (2+ paragraphs)
+    implementation_date: str = "Not specified"  # ✅ SYNCED: When bill takes effect
+    tokens_input: int = 0
+    tokens_output: int = 0
+    compression_ratio: float = 0.0
+    carbon_saved_grams: float = 0.0
+
+
+# ─────────────────────────────────────────────
+# TRANSLATION OUTPUT  (from translator.py)
+# ✅ SYNCHRONIZED: Matches translator.translate_result() output
+# ─────────────────────────────────────────────
+
+class TranslatedSummary(BaseModel):
+    """Translated version of CitizenSummary"""
+    bill_id: str
+    language: str  # ✅ SYNCED: Target language code (e.g., "hi", "te")
+    headline: str  # ✅ SYNCED: Translated headline
+    key_points: List[str]  # ✅ SYNCED: Translated key points (from LLM's key_changes)
+    impact_statement: str  # ✅ SYNCED: Translated impact statement
+    overview: Optional[str] = None  # ✅ SYNCED: Translated overview

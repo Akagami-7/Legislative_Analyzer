@@ -20,18 +20,49 @@ SECTION_PATTERN = re.compile(
 enc = tiktoken.get_encoding("cl100k_base")
 
 def split_sections(pages: list) -> list:
+    if pages and isinstance(pages[0], str):
+        normalized_pages = []
+        current_char = 0
 
-    # Build exact char position where each page starts
-    page_start_chars = []
-    cumulative = 0
-    for page in pages:
-        page_start_chars.append(cumulative)
-        cumulative += len(page) + 1
+        for text in pages:
+            normalized_pages.append({
+                "text": text,
+                "start_char": current_char
+            })
+            current_char += len(text)
 
-    full_text = "\n".join(pages)
+        pages = normalized_pages
+
+    if not pages:
+        print("❌ ERROR: No pages extracted!")
+        return []
+
+    # After normalization pages is a list of dicts — always extract text safely
+    page_texts = [p["text"] if isinstance(p, dict) else p for p in pages]
+
+    total_text = "\n".join(page_texts)
+    avg_len = sum(len(t) for t in page_texts) / len(page_texts)
+
+    print(f"\n📊 INGESTION METRICS:")
+    print(f"   Pages: {len(pages)}")
+    print(f"   Avg chars/page: {avg_len:.0f}")
+    print(f"   Total chars: {len(total_text)}")
+
+    # Check for suspicious patterns (spaces removed)
+    long_words = len(re.findall(r'\b\w{25,}\b', total_text))
+    if long_words > 10:
+        print(f"   ⚠️  Found {long_words} words >25 chars (likely space issues)")
+        print(f"   Sample: {re.findall(r'\\b\\w{{25,}}\\b', total_text)[:3]}")
+
+    if avg_len < 100:
+        print("❌ ERROR: Extracted text too short. Extraction failed!")
+        return []
+
+    full_text = "\n".join(page_texts)
 
     # Skip if text is too short — gazette wrapper
     if len(full_text.strip()) < 500:
+        print("❌ ERROR: Total text < 500 chars. Likely extraction issue.")
         return []
 
     # Skip index/table of contents pages
@@ -76,6 +107,7 @@ def split_sections(pages: list) -> list:
 
         # Find page number — iterate backwards
         page_num = 1
+        page_start_chars = [p.get("start_char", 0) for p in pages]
         for idx in range(len(page_start_chars) - 1, -1, -1):
             if page_start_chars[idx] <= start:
                 page_num = idx + 1

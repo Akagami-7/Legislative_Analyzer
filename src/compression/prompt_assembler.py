@@ -54,8 +54,15 @@ def assemble_prompt(bill: IngestedBill,
         lines.append("=" * 60)
 
     for section in compressed_sections:
-        lines.append(f"\n[{section.section_title.upper()}]")
-        lines.append(section.section_text)
+        section_text_block = f"\n[{section.section_title.upper()}]\n{section.section_text}"
+        section_tokens = len(enc.encode(section_text_block))
+
+        if len(enc.encode("\n".join(lines) + TASK_INSTRUCTION)) + section_tokens > TOKEN_CEILING:
+            lines.append("\n[TRUNCATED: Document exceeds max length. Summarizing available sections.]\n")
+            print(f"⚠️ Prompt reached ceiling ({TOKEN_CEILING} tokens). Truncating remaining sections.")
+            break
+
+        lines.append(section_text_block)
 
     context = "\n".join(lines)
     full_prompt = context + TASK_INSTRUCTION

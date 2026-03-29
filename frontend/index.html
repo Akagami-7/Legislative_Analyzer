@@ -32,7 +32,7 @@
       --accent-blue: #2563EB;
       --accent-blue-bg: #EFF6FF;
       --accent-green: #059669;
-      --accent-green-bg: #ECFDF5;
+      --accent-green-bg: #e6f7ec;
       --accent-red: #DC2626;
       --accent-red-bg: #FEF2F2;
 
@@ -50,14 +50,14 @@
     }
 
     [data-theme='dark'] {
-      --bg: #111827;
-      --bg-alt: #1F2937;
-      --border: #374151;
-      --border-dark: #4B5563;
+      --bg: #181818;
+      --bg-alt: #222222;
+      --border: #2e2e2e;
+      --border-dark: #3a3a3a;
       --text-main: #F9FAFB;
-      --text-muted: #D1D5DB;
-      --text-light: #9CA3AF;
-      --pill-header-bg: rgba(17, 24, 39, 0.9);
+      --text-muted: #A0A8B8;
+      --text-light: #6B7280;
+      --pill-header-bg: rgba(24, 24, 24, 0.92);
       color-scheme: dark;
     }
 
@@ -396,6 +396,11 @@
       transition: all 0.2s;
     }
 
+    .pill-green {
+      background: var(--accent-green-bg) !important;
+      color: var(--accent-green) !important;
+    }
+
     .pill:hover {
       border-color: var(--text-main);
       color: var(--text-main);
@@ -658,21 +663,23 @@
 
     /* Token Efficiency Bar */
     .token-bar-bg {
-      background: var(--border);
-      height: 10px;
-      border-radius: 5px;
       width: 100%;
-      margin: 1rem 0;
+      height: 10px;
+      background: #e5e7eb;
+      border: 1px solid var(--border-dark);
+      /* added */
+      border-radius: 999px;
       overflow: hidden;
       position: relative;
     }
 
     .token-bar-fill {
-      background: var(--text-main);
       height: 100%;
       width: 0%;
-      transition: width 1.5s cubic-bezier(0.22, 1, 0.36, 1);
-      border-radius: 5px;
+      background: #000000;
+      /* changed to pure black */
+      transition: width 0.6s ease;
+      border-radius: 999px;
     }
 
     .token-labels {
@@ -809,7 +816,7 @@
   <div class="header-wrapper">
     <header>
       <div class="logo">
-        LegislativeAI.
+        <a href="/" style="text-decoration: none; color: inherit; cursor: pointer;">LegislativeAI.</a>
         <span class="logo-badge">v2.0</span>
       </div>
       <div class="nav-links">
@@ -1018,23 +1025,38 @@
         <h1 class="hero-title" style="font-size:2.5rem; text-align:left; margin-bottom:2rem;">Intelligence Report.</h1>
 
         <div class="card">
-          <h3 style="margin-bottom:2rem; border-bottom:1px solid var(--border); padding-bottom:1rem;">Token Economics
+          <h3 style="margin-bottom:1.5rem; border-bottom:1px solid var(--border); padding-bottom:1rem;">Token Economics
           </h3>
-          <div class="token-bar-bg"
-            title="This bar visually demonstrates the ratio of tokens preserved after deep filtering/compression.">
-            <div class="token-bar-fill" id="token-bar"></div>
-          </div>
-          <div class="token-labels" style="margin-bottom: 2rem;">
-            <span id="lbl-orig">Raw tokens</span>
-            <span id="lbl-comp">Compressed output</span>
+
+          <!-- Token Efficiency Bar -->
+          <div style="margin-bottom:0.5rem;">
+            <div class="token-labels" style="margin-bottom:0.4rem;">
+              <span id="lbl-orig">Raw tokens</span>
+              <span id="lbl-comp">Compressed output</span>
+            </div>
+            <div class="tooltip-container" style="display:block; width:100%;">
+              <div class="token-bar-bg" style="width:100%;">
+                <div class="token-bar-fill" id="token-bar-fill"></div>
+              </div>
+              <span class="tooltip-text" id="tt-bar"></span>
+            </div>
           </div>
 
-          <div class="pills-row" style="margin: 0;">
-            <span class="pill" style="background:var(--accent-blue-bg); color:var(--accent-blue); border:none;"
-              id="pill-red"></span>
-            <span class="pill" style="background:var(--accent-green-bg); color:var(--accent-green); border:none;"
-              id="pill-co2"></span>
+          <!-- Pills -->
+          <div class="pills-row" style="margin: 1rem 0 0.75rem;">
+            <div class="tooltip-container">
+              <span class="pill" style="background:var(--accent-blue-bg); color:var(--accent-blue); border:none;"
+                id="pill-red"></span>
+              <span class="tooltip-text" id="tt-red"></span>
+            </div>
+            <div class="tooltip-container">
+              <span class="pill"
+                style="background:var(--accent-green-bg); color:var(--accent-green); border:none; display:inline-flex; align-items:center; gap:0.4rem;"
+                id="pill-co2"></span>
+              <span class="tooltip-text" id="tt-co2"></span>
+            </div>
           </div>
+
         </div>
 
         <div class="extract-box">
@@ -1111,7 +1133,12 @@
     };
 
     let pTimer = null;
-    const $ = id => document.getElementById(id);
+    let controller = null;
+    const $ = id => {
+      const el = document.getElementById(id);
+      if (!el) console.warn(`Missing element: ${id}`);
+      return el;
+    };
     const hide = id => $(id).style.display = 'none';
     const show = (id, style = 'block') => $(id).style.display = style;
 
@@ -1144,7 +1171,7 @@
           throw new Error(`Server returned ${res.status}: ${txt.substring(0, 50)}`);
         }
         const data = await res.json();
-        state.providers = data.providers;
+        state.providers = data.providers || [];
       } catch (e) {
         console.error("Fetch Providers Error:", e);
         console.warn("Backend not yet ready, will retry on click.");
@@ -1179,8 +1206,11 @@
         btn.disabled = true;
         try {
           const res = await fetch(`${API}/models/providers`);
+          if (!res.ok) {
+            throw new Error(`Provider fetch failed (${res.status})`);
+          }
           const d = await res.json();
-          state.providers = d.providers;
+          state.providers = d.providers || [];
         } catch (e) {
           alert("Cannot connect to API at localhost:8000. Ensure 'python start.py' is running.");
           btn.innerText = old; btn.disabled = false;
@@ -1274,23 +1304,32 @@
       const key = $('api-key').value.trim();
 
       if (pid !== 'ollama' && !key) {
-        $('api-key').focus(); return;
+        showBanner('error', 'API key is required to load models.', pid);
+        $('api-key').focus();
+        return;
       }
 
       hide('banner-api');
-      const btn = $('btn-load-models');
-      if (btn) { btn.innerText = 'Connecting...'; btn.disabled = true; }
 
-      let url = `${API}/models/${pid}`;
+      const btn = $('btn-load-models');
+      const resetBtn = () => {
+        if (btn) {
+          btn.innerText = 'Load Models';
+          btn.disabled = false;
+        }
+      };
+
+      if (btn) {
+        btn.innerText = 'Connecting...';
+        btn.disabled = true;
+      }
 
       try {
-        const res = await fetch(url, {
+        const res = await fetch(`${API}/models/${pid}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ api_key: key })
         });
-
-        if (btn) { btn.innerText = 'Load Models'; btn.disabled = false; }
 
         if (!res.ok) {
           const txt = await res.text();
@@ -1301,32 +1340,40 @@
         const data = await res.json();
 
         if (data.status === 'error') {
+          resetBtn();
           showBanner('error', data.message, pid);
           return;
         }
 
-        if (data.models && data.models.length > 0) {
-          state.availableModels = data.models;
+        // 🔥 HARDENED FIX
+        const models = Array.isArray(data.models) ? data.models : [];
+
+        if (models.length > 0) {
+          state.availableModels = models;
 
           const sel = $('select-model');
           sel.innerHTML = '';
-          data.models.forEach(m => {
+
+          models.forEach(m => {
             const opt = document.createElement('option');
-            opt.value = m.id;
-            opt.innerText = `${m.name} ${m.free ? '🆓' : '💳'}`;
+            opt.value = m.id || m.name; // fallback safety
+            opt.innerText = `${m.name || m.id} ${m.free ? '🆓' : '💳'}`;
             sel.appendChild(opt);
           });
 
-          showBanner('success', `Connection secured. ${data.count} models detected.`);
+          showBanner('success', `Connection secured. ${models.length} models detected.`);
           show('box-models');
         } else {
           showBanner('error', 'No text-generation models found on this account.', pid);
         }
+
       } catch (e) {
-        if (btn) { btn.innerText = 'Load Models'; btn.disabled = false; }
         showBanner('error', `Connection Failure. ${e.message}`, pid);
+      } finally {
+        resetBtn();
       }
-      console.log("LegislativeAI - Version: v1.1.2-secure");
+
+      console.log("LegislativeAI - Version: v1.1.3-stable");
     }
 
     function showBanner(type, msg, pid = null) {
@@ -1368,8 +1415,8 @@
       const sdKey = $('sd-key').value.trim();
       if (sdUse && !sdKey) { show('err-sd'); return; }
 
-      const transMode = document.querySelector('input[name="trans"]')?.checked
-        ? document.querySelector('input[name="trans"]:checked').value : 'google';
+      const selected = document.querySelector('input[name="trans"]:checked');
+      const transMode = selected ? selected.value : 'google';
       const hfKey = $('hf-key').value.trim();
       const lang = $('language').value;
       if (lang !== 'en' && transMode === 'hf' && !hfKey) { show('err-hf'); return; }
@@ -1417,12 +1464,17 @@
     }
 
     async function pollTask(tid, att = 0) {
-      if (att > 45) { handleError("Server operation timed out."); return; }
+      if (att >= 60) { handleError("Server operation timed out."); return; }
       try {
         const r = await fetch(`${API}/bills/${tid}`);
-        const d = await r.json();
+        if (!r.ok) {
+          throw new Error(`HTTP ${r.status}`);
+        }
 
-        if (d.status === 'completed') {
+        const d = await r.json();
+        console.log("Polling response:", d);
+
+        if (d.status === 'completed' || d.status === 'done') {
           if (pTimer) clearInterval(pTimer);
           renderResults(d);
         } else if (d.status === 'failed') {
@@ -1431,7 +1483,8 @@
           setTimeout(() => pollTask(tid, att + 1), 2000);
         }
       } catch (e) {
-        handleError("Connection to pipeline lost.");
+        console.warn("Polling failed, retrying...", e);
+        setTimeout(() => pollTask(tid, att + 1), 2000);
       }
     }
 
@@ -1462,68 +1515,135 @@
     }
 
     function renderResults(res) {
-      hide('res-loading'); show('res-success');
+      hide('res-loading');
+      show('res-success');
       state.result = res;
 
-      const sum = res.summary;
-      const comp = res.compressed_document;
-      const raw = res.raw_document;
+      const sum = res.summary || {};
+      const comp = res.compressed_document || {};
+      const raw = res.raw_document || {};
 
-      // Setup UI
-      $('lang-label').innerText = `[DIGITIZED CITIZEN EXTRACT / ${sum.language.toUpperCase()}]`;
-      $('res-headline').innerText = sum.headline;
-      $('res-impact').innerText = sum.impact_statement;
+      // ── Setup UI ─────────────────────────────────────────
+      $('lang-label').innerText = `[DIGITIZED CITIZEN EXTRACT / ${(sum.language || 'EN').toUpperCase()}]`;
+      $('res-headline').innerText = sum.headline || 'No headline available';
+      $('res-impact').innerText = sum.impact_statement || '';
 
-      const ul = $('res-kp'); ul.innerHTML = '';
-      sum.key_points.forEach(k => {
+      const ul = $('res-kp');
+      ul.innerHTML = '';
+      (sum.key_points || []).forEach(k => {
         const li = document.createElement('li');
-        li.innerText = k; ul.appendChild(li);
+        li.innerText = k;
+        ul.appendChild(li);
       });
 
-      // Meta
+      // ── Overview ─────────────────────────────────────────
       if (sum.overview) {
         const ulist = $('res-overview-list');
         ulist.innerHTML = '';
-        const blocks = sum.overview.split('\n').map(x => x.trim().replace(/^[-•*]\s*/, '')).filter(x => x);
-        blocks.forEach(b => {
-          const li = document.createElement('li');
-          li.innerText = b;
-          ulist.appendChild(li);
-        });
-        show('res-overview-card');
+
+        // Handle both array and newline-separated string
+        let blocks;
+        if (Array.isArray(sum.overview)) {
+          blocks = sum.overview.map(x => x.trim().replace(/^[-•*]\s*/, '')).filter(Boolean);
+        } else {
+          blocks = String(sum.overview)
+            .split('\n')
+            .map(x => x.trim().replace(/^[-•*]\s*/, ''))
+            .filter(Boolean);
+        }
+
+        if (blocks.length > 0) {
+          blocks.forEach(b => {
+            const li = document.createElement('li');
+            li.innerText = b;
+            ulist.appendChild(li);
+          });
+          show('res-overview-card');
+        } else {
+          hide('res-overview-card');
+        }
       } else {
         hide('res-overview-card');
       }
+
+      // ── Meta ─────────────────────────────────────────────
       $('meta-eng').innerText = $('select-model').value || 'Generative Engine';
-      $('meta-tlen').innerText = (raw?.token_count || 0).toLocaleString() + ' tokens';
+      $('meta-tlen').innerText = (raw.token_count || 0).toLocaleString() + ' tokens';
       $('meta-pg').innerText = raw?.metadata?.page_count || '?';
       $('meta-sec').innerText = raw?.metadata?.section_count || '?';
 
-      // Tokens animation
-      const o = comp?.original_tokens || 1;
-      const c = comp?.compressed_tokens || 1;
-      const pct = Math.round(100 - (c / o) * 100);
+      // ── Token Economics ──────────────────────────────────
+      const o = res.compressed_document.original_tokens || 1;
+      const c = res.compressed_document.compressed_tokens || 1;
 
-      $('lbl-orig').innerText = o.toLocaleString() + ' Original Length (tokens)';
+      const isExpanded = c > o;
+      let pct = Math.round(100 - (c / o) * 100);
+      if (pct < 0) pct = 0;
+
+      $('lbl-orig').innerText = o.toLocaleString() + ' Original (tokens)';
       $('lbl-comp').innerText = c.toLocaleString() + ' Final Payload (tokens)';
 
-      $('pill-red').innerText = `↓ ${pct}% noise reduction`;
-      $('tt-red').innerText = `Our extraction heuristic removed ${Math.max(0, o - c).toLocaleString()} boilerplate tokens before sending to the engine, saving context window while keeping semantic meaning.`;
+      const tokenBarFill = $('token-bar-fill');
+      if (isExpanded) {
+        $('pill-red').innerText = '↑ Expanded for LLM processing';
+        $('tt-red').innerText = 'Small inputs may grow due to prompt engineering, system instructions, and formatting required for high-quality analysis.';
+        tokenBarFill.style.background = 'var(--accent-blue)'; // blue = expansion
+      } else {
+        $('pill-red').innerText = `↓ ${pct}% noise reduction`;
+        $('tt-red').innerText = `Removed ${(o - c).toLocaleString()} unnecessary tokens before LLM processing.`;
+        tokenBarFill.style.background = '#000000'; // black = compression
+      }
 
-      $('pill-co2').innerText = `-${(comp?.carbon_saved_grams || 0).toFixed(2)}g CO₂ footprint`;
-      $('tt-co2').innerText = `By compressing the document, we saved an estimated ${(comp?.carbon_saved_grams || 0).toFixed(2)} grams of CO2 emissions from the LLM execution.`;
+      // ── CO2 Visualization ────────────────────────────────
+      let carbon = res.compressed_document.carbon_saved_grams;
+      console.log('Tokens:', o, c, 'CO2:', carbon);
+      if (!carbon || carbon <= 0) {
+        const tokensSaved = Math.max(0, o - c);
+        carbon = tokensSaved * 0.000002;
+      }
 
-      $('tt-bar').innerText = `This represents a reduction of ${pct}%, shrinking a massive ${o.toLocaleString()}-token file down to ${c.toLocaleString()} tokens of pure signal.`;
+      let carbonText;
+      if (carbon < 0.001) {
+        carbonText = '🌿 ≈0 CO₂ saved';
+      } else if (carbon < 1) {
+        carbonText = `🌿 ${(carbon * 1000).toFixed(1)} mg CO₂ saved`;
+      } else {
+        carbonText = `🌿 ${carbon.toFixed(2)} g CO₂ saved`;
+      }
 
+      $('pill-co2').innerText = carbonText;
+
+      // Better scaling (log-like feel)
+      let co2Pct;
+      if (carbon <= 0) {
+        co2Pct = 0;
+      } else {
+        co2Pct = Math.min(100, Math.max(5, Math.log10(carbon * 1000 + 1) * 30));
+      }
+      $('co2-bar').style.width = co2Pct + '%';
+
+      $('tt-co2').innerText = carbon > 0
+        ? `Compression reduced LLM compute, saving ~${carbon.toFixed(4)} grams of CO₂ emissions.`
+        : 'No measurable carbon savings for this small input.';
+
+      // ── Tooltip ──────────────────────────────────────────
+      $('tt-bar').innerText = isExpanded
+        ? `Input expanded from ${o.toLocaleString()} to ${c.toLocaleString()} tokens due to LLM formatting.`
+        : `Reduced from ${o.toLocaleString()} → ${c.toLocaleString()} tokens (${pct}% reduction).`;
+
+      // ── Animate bars ─────────────────────────────────────
+      const usedPct = Math.min(100, (c / o) * 100);
       setTimeout(() => {
-        $('token-bar').style.width = Math.max(2, pct) + '%';
+        tokenBarFill.style.width = usedPct + '%';
       }, 300);
     }
 
     function resetApp() {
       state.taskId = null; state.result = null;
       hide('step-3'); show('step-1');
-      $('token-bar').style.width = '0%';
+      $('token-bar-fill').style.width = '0%';
+      $('pill-co2').innerText = '';
+      $('pill-red').innerText = '';
     }
 
     function copyResult() {

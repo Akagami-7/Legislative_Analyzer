@@ -183,17 +183,42 @@ def real_run_pipeline(task_id: str, request: AnalyzeRequest) -> None:
         provider = getattr(request, "llm_provider", "gemini")
         api_key  = getattr(request, "llm_api_key", None)
 
-        analysis = track_pipeline_emissions(
-            bill.bill_id,
-            bill.total_token_count,
-            prompt_tokens,
-            analyze_with_llm,   # <-- IMPORTANT: unified wrapper (not gemini directly)
-            prompt,
-            bill.total_token_count,
-            prompt_tokens,
-            provider=provider,
-            api_key=api_key
-        )
+        try:
+            analysis = track_pipeline_emissions(
+                bill.bill_id,
+                bill.total_token_count,
+                prompt_tokens,
+                analyze_with_llm,
+                prompt,
+                bill.total_token_count,
+                prompt_tokens,
+                provider=provider,
+                api_key=api_key
+            )
+
+        except Exception as e:
+            print(f"⚠️ LLM failed: {e}")
+
+            # ✅ fallback to smaller Groq model
+            try:
+                print("🔁 Retrying with fallback model (llama-3.1-8b-instant)...")
+                analysis = track_pipeline_emissions(
+                    bill.bill_id,
+                    bill.total_token_count,
+                    prompt_tokens,
+                    analyze_with_llm,
+                    prompt,
+                    bill.total_token_count,
+                    prompt_tokens,
+                    provider="groq",
+                    api_key=api_key,
+                    model="llama-3.1-8b-instant"
+                )
+            except Exception as e2:
+                print(f"❌ Fallback also failed: {e2}")
+
+                # Finally raise an explicit error to trigger the UI failure state gracefully
+                raise ValueError("⚠️ Analysis failed due to API token limits on a very large document. Please retry in 1 minute or switch LLM providers.")
 
         # ── Step 5: Translate if needed ───────────────────────
         lang_code = request.language.value
@@ -217,34 +242,36 @@ def real_run_pipeline(task_id: str, request: AnalyzeRequest) -> None:
             overview = getattr(analysis, "overview", None)
 
         # ── Step 6: Build response in AkashSamuel's schema ───
-        compression_ratio = round(
-            1 - (prompt_tokens / max(bill.total_token_count, 1)), 4
-        )
+        if prompt_tokens <= bill.total_token_count:
+            compression_ratio = round(
+                1 - (prompt_tokens / bill.total_token_count), 4
+            )
+        else:
+            compression_ratio = 0.0  # ❗ no compression → avoid negative UI bug
 
         raw_doc = RawDocument(
-            doc_id=task_id,
+            bill_id=task_id,
             source_url=request.pdf_url,
             raw_text=f"[Ingested {len(bill.sections)} sections]",
             token_count=bill.total_token_count,
             language_hint=SupportedLanguage.ENGLISH,
             metadata={
                 "page_count": bill.page_count,
-                "section_count": len(bill.sections),
-                "bill_id": bill.bill_id
+                "section_count": len(bill.sections)
             }
         )
 
         compressed_doc = CompressedDocument(
-            doc_id=task_id,
+            bill_id=task_id,
             compressed_text=f"[Compressed to {prompt_tokens} tokens]",
             original_tokens=bill.total_token_count,
             compressed_tokens=prompt_tokens,
             compression_ratio=compression_ratio,
-            carbon_saved_grams=analysis.carbon_saved_grams
+            carbon_saved_grams=getattr(analysis, "carbon_saved_grams", 0.0)
         )
 
         summary = CitizenSummary(
-            doc_id=task_id,
+            bill_id=task_id,
             headline=citizen_summary_text.split('.')[0] + '.',
             key_points=key_points,
             impact_statement=impact,

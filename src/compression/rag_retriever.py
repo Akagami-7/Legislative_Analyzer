@@ -156,9 +156,13 @@ def format_rag_context(retrieved: List[Dict], max_tokens: int = 2000) -> str:
     enc = tiktoken.get_encoding("cl100k_base")
 
     for item in retrieved:
+        raw_text = item["text"]
+        tokens = enc.encode(raw_text)
+        truncated_tokens = tokens[:300]
+        truncated_text = enc.decode(truncated_tokens)
         section_text = (
             f"\n[From: {item['bill_id']} — {item['section_title']}]\n"
-            f"{item['text'][:600]}\n"
+            f"{truncated_text}\n"
         )
         section_tokens = len(enc.encode(section_text))
 

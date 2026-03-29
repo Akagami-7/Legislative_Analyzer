@@ -7,6 +7,7 @@ v2.0 Sprint 2
 Owner: Akagami
 """
 
+import re
 import os
 import json
 import sys
@@ -415,17 +416,45 @@ Return ONLY the JSON. No markdown, no explanation, no code blocks.
 def _parse_json_result(text: str,
                        orig_tokens: int,
                        comp_tokens: int) -> AnalysisResult:
-    """Parse LLM response text into AnalysisResult."""
-    start = text.find("{")
-    end   = text.rfind("}") + 1
-    if start == -1 or end == 0:
-        raise ValueError(f"No JSON found in response: {text[:200]}")
+    """Robust JSON parser for messy LLM outputs."""
 
-    data = json.loads(text[start:end])
+    if not text:
+        raise ValueError("⚠️ Empty response from LLM")
+
+    # 1. Remove markdown code fences only (```json ... ``` or ``` ... ```)
+    cleaned = re.sub(r"^```(?:json)?\s*", "", text.strip(), flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s*```\s*$", "", cleaned.strip())
+
+    # 2. Try direct parse first (fast path)
+    try:
+        data = json.loads(cleaned)
+    except:
+        # 3. Extract JSON object using regex
+        match = re.search(r"\{.*\}", cleaned, re.DOTALL)
+        if not match:
+            raise ValueError(f"No JSON found in response: {text[:200]}")
+
+        json_str = match.group(0)
+
+        # 4. Fix common LLM JSON issues
+        json_str = re.sub(r",\s*}", "}", json_str)   # trailing commas
+        json_str = re.sub(r",\s*]", "]", json_str)
+
+        try:
+            data = json.loads(json_str)
+        except Exception as e:
+            raise ValueError(
+                f"⚠️ Failed to parse LLM JSON: {str(e)}\nRaw: {text[:200]}"
+            )
+
+    # 5. Inject metrics safely
     data["tokens_input"]       = orig_tokens
     data["tokens_output"]      = comp_tokens
-    data["compression_ratio"]  = round(1 - comp_tokens / max(orig_tokens, 1), 4)
-    data["carbon_saved_grams"] = round(data["compression_ratio"] * 15, 2)
+    raw_ratio = 1 - comp_tokens / max(orig_tokens, 1)
+    safe_ratio = max(0.0, raw_ratio)
+    data["compression_ratio"]  = round(safe_ratio, 4)
+    data["carbon_saved_grams"] = round(safe_ratio * 15, 2)
+
     return AnalysisResult(**data)
 
 
@@ -451,7 +480,7 @@ def _analyze_gemini(prompt: str,
         client   = genai.Client(api_key=key)
         response = client.models.generate_content(
             model=selected_model,
-            contents=prompt + TASK_INSTRUCTION,
+            contents=TASK_INSTRUCTION + "\n\n" + prompt,
             config=types.GenerateContentConfig(
                 temperature=0.1,
                 max_output_tokens=2048
@@ -509,7 +538,7 @@ def _analyze_claude(prompt: str,
             temperature=0.1,
             messages=[{
                 "role"   : "user",
-                "content": prompt + TASK_INSTRUCTION
+                "content": TASK_INSTRUCTION + "\n\n" + prompt
             }]
         )
     except Exception as e:
@@ -565,7 +594,7 @@ def _analyze_gpt(prompt: str,
             max_tokens=2048,
             messages=[{
                 "role"   : "user",
-                "content": prompt + TASK_INSTRUCTION
+                "content": TASK_INSTRUCTION + "\n\n" + prompt
             }]
         )
     except Exception as e:
@@ -616,8 +645,11 @@ def _analyze_groq(prompt: str,
             temperature=0.1,
             max_tokens=2048,
             messages=[{
+                "role": "system",
+                "content": "You are a strict JSON generator. Output ONLY valid JSON."
+            },{
                 "role"   : "user",
-                "content": prompt + TASK_INSTRUCTION
+                "content": TASK_INSTRUCTION + "\n\n" + prompt
             }]
         )
     except Exception as e:
@@ -699,7 +731,7 @@ def _analyze_ollama(prompt: str,
                 "model"      : selected_model,
                 "messages"   : [{
                     "role"   : "user",
-                    "content": prompt + TASK_INSTRUCTION
+                    "content": TASK_INSTRUCTION + "\n\n" + prompt
                 }],
                 "temperature": 0.1,
                 "stream"     : False

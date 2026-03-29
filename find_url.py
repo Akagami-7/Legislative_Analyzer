@@ -32,7 +32,7 @@ def fetch_url(url):
         return e
 
 
-def main():
+def ():
     # ── Deduplicate URLs ─────────────────────────
     seen_urls = {}
     for key, url in KNOWN_BILLS.items():
@@ -94,5 +94,5 @@ def main():
                 print(f"    URL: {url}")
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == "____":
+    ()

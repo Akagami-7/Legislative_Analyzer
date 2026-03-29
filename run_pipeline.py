@@ -1,6 +1,21 @@
+"""
+run_pipeline.py — UPDATED FOR SYNCHRONIZATION
+==============================================
+Standalone CLI pipeline for batch processing bills.
+
+✅ SYNCHRONIZED: Uses updated modules with consistent field names
+- semantic_chunk_bill() → fixed sections
+- Compression pipeline → AnalysisResult with key_changes
+- Translation → CitizenSummary with key_points
+- Output → JSON files with proper structure
+
+Owner: All team members
+"""
+
 import json
 import sys
 import os
+import argparse
 sys.path.append('.')
 
 from src.shared_schemas import IngestedBill, BillSection
@@ -10,7 +25,7 @@ from src.compression.extractor import extractive_compress
 from src.compression.prompt_assembler import assemble_prompt
 from src.compression.token_logger import log_compression
 from src.compression.llm_client import analyze_with_gemini
-from src.compression.translator import translate_result
+from src.compression.translator import translate_result, convert_analysis_to_citizen_summary
 from src.compression.rag_embedder import embed_bill, get_collection_stats
 from src.compression.rag_retriever import retrieve_context, format_rag_context
 from src.compression.multi_llm_client import analyze_with_llm
@@ -19,61 +34,24 @@ import tiktoken
 
 enc = tiktoken.get_encoding("cl100k_base")
 
-# def semantic_chunk_bill(data: dict):
-#     """
-#     Rishi's splitter only detected CHAPTER boundaries.
-#     This re-splits each chapter into individual sections
-#     using the actual Section numbering inside the text.
-#     """
-#     import re
-#     fixed = []
-#     counter = 0
-
-#     SECTION_PATTERN = re.compile(
-#         r'(?=(?:^|\n)\s*'
-#         r'(?:\d+\.\s+'          # 1. Short title
-#         r'|\d+[A-Z]\.\s+'       # 4A. Special provision  
-#         r'|Section\s+\d+'       # Section 4
-#         r'))',
-#         re.MULTILINE
-#     )
-
-#     for chapter in data["sections"]:
-#         chapter_text = chapter["section_text"]
-#         chapter_title = chapter["section_title"]
-
-#         # Try to split this chapter into individual sections
-#         splits = SECTION_PATTERN.split(chapter_text)
-#         splits = [s.strip() for s in splits if len(s.strip()) > 60]
-
-#         if len(splits) <= 1:
-#             # Could not split further — keep as is
-#             fixed.append(BillSection(
-#                 section_id=chapter["section_id"],
-#                 section_title=chapter_title,
-#                 section_text=chapter_text,
-#                 token_count=len(enc.encode(chapter_text)),
-#                 page_number=chapter["page_number"]
-#             ))
-#         else:
-#             # Successfully split into individual sections
-#             for i, split_text in enumerate(splits):
-#                 # Extract section number from text start
-#                 first_line = split_text.split('\n')[0][:60]
-#                 fixed.append(BillSection(
-#                     section_id=f"{chapter['section_id']}_s{i}",
-#                     section_title=f"{chapter_title} — {first_line}",
-#                     section_text=split_text,
-#                     token_count=len(enc.encode(split_text)),
-#                     page_number=chapter["page_number"]
-#                 ))
-#                 counter += 1
-
-#     print(f"\n🔧 Section re-split: {len(data['sections'])} chapters "
-#           f"→ {len(fixed)} individual sections")
-#     return fixed
 
 def run_pipeline(json_path: str) -> None:
+    """
+    ✅ SYNCHRONIZED: Run complete pipeline with proper data flow
+    
+    Flow:
+    1. Load ingested bill JSON
+    2. Semantic chunking
+    3. BM25 ranking
+    4. Extractive compression
+    5. [Optional] ScaleDown
+    6. [Optional] RAG retrieval
+    7. Prompt assembly
+    8. LLM analysis → AnalysisResult
+    9. Convert to CitizenSummary
+    10. [Optional] Translation
+    11. Export JSON results
+    """
 
     print(f"\n{'='*60}")
     print("   AI LEGISLATIVE ANALYZER — COMPRESSION PIPELINE")
@@ -84,6 +62,7 @@ def run_pipeline(json_path: str) -> None:
     with open(json_path, encoding="utf-8", errors="ignore") as f:
         data = json.load(f)
 
+    # ── 2. Semantic Chunking ──────────────────────────────────
     sections = semantic_chunk_bill(data)
     bill = IngestedBill(
         bill_id=data["bill_id"],
@@ -99,49 +78,70 @@ def run_pipeline(json_path: str) -> None:
     print(f"   Sections     : {len(bill.sections)}")
     print(f"   Total tokens : {bill.total_token_count:,}")
 
-    # ── 2. BM25 Filter ────────────────────────────────────────
+    # ── 3. BM25 Filter ────────────────────────────────────────
     def get_keep_ratio(section_count: int) -> float:
+        """Dynamic compression parameters"""
         if section_count < 50:
-            return 0.7   # small bill — keep more
+            return 0.7
         elif section_count < 200:
-            return 0.5   # medium
+            return 0.5
         else:
-            return 0.4   # large bill — filter harder
+            return 0.4
 
     keep_ratio = get_keep_ratio(len(bill.sections))
     filtered = rank_and_filter(bill.sections, keep_ratio=keep_ratio)
 
-    # ── 3. Extractive Compress ────────────────────────────────
+    # ── 4. Extractive Compress ────────────────────────────────
     def get_sentence_budget(total_tokens: int) -> int:
+        """Dynamic sentence budget based on document size"""
         if total_tokens < 20000:
-            return 4   # small bill — keep more
+            return 4
         elif total_tokens < 60000:
-            return 3   # medium bill
+            return 3
         else:
-            return 2   # large bill — compress harder
+            return 2
 
     sentence_budget = get_sentence_budget(bill.total_token_count)
     compressed = extractive_compress(filtered, sentences_per_section=sentence_budget)
 
-    # ── 3.5 ScaleDown (optional) ──────────────────────────────
-    # Combine compressed sections into one text block
+    # Build compressed text and check expansion
     compressed_text = "\n\n".join(
         f"[{s.section_title}]\n{s.section_text}"
         for s in compressed
     )
 
-    scaledown_api_key = os.getenv("SCALEDOWN_API_KEY")  # or pass from request
+    compressed_tokens = len(enc.encode(compressed_text))
+
+    if compressed_tokens >= bill.total_token_count:
+        print("⚠️  Extractive compression expanded → reverting to original")
+        compressed = bill.sections
+        compressed_text = "\n\n".join(
+            f"[{s.section_title}]\n{s.section_text}"
+            for s in compressed
+        )
+
+    # ── 4.5 ScaleDown (optional) ──────────────────────────────
+    scaledown_api_key = os.getenv("SCALEDOWN_API_KEY")
     use_scaledown     = scaledown_api_key is not None
 
     if use_scaledown:
         print(f"\n⚡ Running ScaleDown compression...")
+
         sd_text, sd_metrics = try_scaledown_compress(
             text=compressed_text,
             api_key=scaledown_api_key,
             model="llama-3-1-70b",
             rate="auto"
         )
-        # Rebuild sections from ScaleDown output
+
+        # 🔧 SAFETY CHECK
+        orig_tokens = len(enc.encode(compressed_text))
+        sd_tokens   = len(enc.encode(sd_text))
+
+        if sd_tokens >= orig_tokens:
+            print("⚠️  ScaleDown expanded → reverting")
+            sd_text = compressed_text
+
         from src.shared_schemas import BillSection
         compressed = [BillSection(
             section_id    = "scaledown_compressed",
@@ -150,32 +150,61 @@ def run_pipeline(json_path: str) -> None:
             token_count   = len(enc.encode(sd_text)),
             page_number   = 1
         )]
+
+        compressed_text = sd_text
+
         print(f"   ScaleDown reduction: {sd_metrics.get('reduction_percent', 0)}%")
     else:
         print(f"\n   ScaleDown: disabled (no API key)")
 
-    # ── 3.6 RAG Context Retrieval ────────────────────────────
-    print(f"\n🔍 Retrieving RAG context...")
+    # ── 5. RAG Context Retrieval (optional) ───────────────────
+    print(f"\nRetrieving RAG context...")
+
     civic_query = (
         f"{bill.bill_id} citizen rights penalty obligations "
         f"enforcement consent data protection"
     )
-    retrieved   = retrieve_context(
+
+    retrieved = retrieve_context(
         query=civic_query,
         current_bill_id=bill.bill_id,
         top_k=5,
         use_reranker=True
     )
-    rag_context = format_rag_context(retrieved, max_tokens=2000)
 
-    # ── 4. Assemble Prompt ────────────────────────────────────
+    # Dynamic token budget
+    MAX_PROMPT_BUDGET = 8000
+    RAG_LIMIT = 2000
+
+    compressed_tokens = len(enc.encode(compressed_text))
+    remaining_budget = MAX_PROMPT_BUDGET - compressed_tokens
+    rag_token_budget = max(0, min(RAG_LIMIT, remaining_budget))
+
+    rag_context = format_rag_context(
+        retrieved,
+        max_tokens=rag_token_budget
+    )
+
+    # ── 6. Assemble Prompt ────────────────────────────────────
     prompt, prompt_tokens = assemble_prompt(bill, compressed, rag_context)
 
-    # ── 5. Log Compression ────────────────────────────────────
+    # 🔧 FINAL EXPANSION GUARD
+    if prompt_tokens >= bill.total_token_count:
+        print("⚠️  Final prompt expanded beyond original bill!")
+        print("Removing RAG context to control size...")
+
+        prompt, prompt_tokens = assemble_prompt(bill, compressed, rag_context="")
+
+    # ── 7. Log Compression ────────────────────────────────────
     log_compression(bill.bill_id, bill.total_token_count, prompt_tokens)
 
-    # ── 6. Claude API Call ────────────────────────────────────
+    # ── 8. LLM Call ───────────────────────────────────────────
     from src.compression.token_logger import track_pipeline_emissions
+
+    # ✅ SYNCHRONIZED: Use multi_llm_client with provider selection
+    provider = os.getenv("LLM_PROVIDER", "gemini")
+    api_key = os.getenv(f"{provider.upper()}_API_KEY")
+    model = os.getenv("LLM_MODEL")
 
     result = track_pipeline_emissions(
         bill.bill_id,
@@ -185,28 +214,55 @@ def run_pipeline(json_path: str) -> None:
         prompt,
         bill.total_token_count,
         prompt_tokens,
-        provider="gemini",    # default — override from API request
-        api_key=None          # uses .env GEMINI_API_KEY
+        provider=provider,
+        api_key=api_key,
+        model=model
     )
 
-    # ── 7. Save Result ────────────────────────────────────────
+    # ✅ SYNCHRONIZED: result is AnalysisResult with key_changes
+
+    # ── 9. Convert to CitizenSummary ─────────────────────────
+    citizen_summary = convert_analysis_to_citizen_summary(result, language="en")
+
+    # ── 10. Save Result ────────────────────────────────────────
     output_path = f"result_{bill.bill_id}.json"
+    
+    # Save as CitizenSummary (for frontend compatibility)
+    output_data = {
+        "bill_id": citizen_summary.bill_id,
+        "headline": citizen_summary.headline,
+        "key_points": citizen_summary.key_points,  # ✅ SYNCED
+        "impact_statement": citizen_summary.impact_statement,
+        "overview": citizen_summary.overview,
+        "language": citizen_summary.language.value if hasattr(citizen_summary.language, 'value') else citizen_summary.language,
+        "metadata": {
+            "original_tokens": bill.total_token_count,
+            "compressed_tokens": prompt_tokens,
+            "compression_ratio": round(1 - (prompt_tokens / bill.total_token_count), 4),
+            "carbon_saved_grams": result.carbon_saved_grams
+        }
+    }
+    
     with open(output_path, "w", encoding="utf-8") as f:
-        f.write(result.model_dump_json(indent=2))
+        json.dump(output_data, f, ensure_ascii=False, indent=2)
 
     print(f"\n{'='*60}")
     print("   RESULT")
     print(f"{'='*60}")
-    print(f"\n📋 Summary:\n{result.citizen_summary}")
-    print(f"\n🔑 Key Changes:")
-    for change in result.key_changes:
-        print(f"   • {change}")
-    print(f"\n👥 Affected Groups: {', '.join(result.affected_groups)}")
-    print(f"\n⚖️  Rights Impact: {result.rights_impact}")
-    print(f"\n📅 Implementation: {result.implementation_date}")
-    print(f"\n💾 Full result saved to: {output_path}")
+    print(f"\nHeadline:\n{citizen_summary.headline}")
 
-    # ── 9. Translate to Hindi (v1.0 demo) ────────────────────
+    print(f"\n🔑 Key Points:")
+    for point in citizen_summary.key_points:
+        print(f"   • {point}")
+
+    print(f"\nImpact Statement:\n{citizen_summary.impact_statement}")
+
+    if citizen_summary.overview:
+        print(f"\nOverview:\n{citizen_summary.overview}")
+
+    print(f"\nFull result saved to: {output_path}")
+
+    # ── 11. Translate to Hindi (optional) ────────────────────
     hindi_result = translate_result(result, target_lang="hi")
 
     hindi_path = f"result_{bill.bill_id}_hindi.json"
@@ -214,8 +270,59 @@ def run_pipeline(json_path: str) -> None:
         json.dump(hindi_result, f, ensure_ascii=False, indent=2)
 
     print(f"\n🇮🇳 Hindi translation saved to: {hindi_path}")
-    print(f"\n📋 Hindi Summary:")
-    print(f"   {hindi_result['citizen_summary']}")
+    print(f"\nHindi Headline:")
+    print(f"   {hindi_result['headline']}")
+
 
 if __name__ == "__main__":
-    run_pipeline("ingested_bill.json")
+    parser = argparse.ArgumentParser(
+        description="Run the AI Legislative Analyzer compression pipeline."
+    )
+    parser.add_argument(
+        "json_path",
+        nargs="?",
+        help="Path to the ingested bill JSON file."
+    )
+    args = parser.parse_args()
+
+    json_path = args.json_path
+
+    if not json_path:
+        # Try to find a default file in 'ingested_bills' directory
+        ingested_dir = "ingested_bills"
+        if os.path.exists(ingested_dir):
+            files = [f for f in os.listdir(ingested_dir) if f.endswith(".json")]
+            if files:
+                json_path = os.path.join(ingested_dir, files[0])
+                print(f"No input file specified. Using default: {json_path}")
+            else:
+                print(f"❌ Error: No JSON files found in '{ingested_dir}' directory.")
+                sys.exit(1)
+        else:
+            print(f"❌ Error: 'ingested_bills' directory does not exist.")
+            print("Please specify a JSON file to process.")
+            sys.exit(1)
+
+    if not os.path.exists(json_path):
+        print(f"❌ Error: File not found: {json_path}")
+        # Suggest available files if possible
+        if os.path.exists("ingested_bills"):
+            files = [f for f in os.listdir("ingested_bills") if f.endswith(".json")]
+            if files:
+                print("\nAvailable bills in 'ingested_bills/':")
+                for f in files[:10]:
+                    print(f"  • ingested_bills/{f}")
+                if len(files) > 10:
+                    print(f"  ... and {len(files) - 10} more.")
+        sys.exit(1)
+
+    try:
+        run_pipeline(json_path)
+    except KeyboardInterrupt:
+        print("\n👋 Pipeline stopped by user.")
+    except Exception as e:
+        print(f"\n💥 Pipeline failed: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
+
