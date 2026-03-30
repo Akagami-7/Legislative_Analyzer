@@ -152,13 +152,15 @@ def translate_result(
         def translate(text: str) -> str:
             return _translate_deep(text, target_lang)
 
-    # 🔥 NEW STRUCTURE (matches frontend)
+    # Detect structure (AnalysisResult vs CitizenSummary)
+    is_analysis = hasattr(result, "citizen_summary")
+
     translated = {
         "bill_id": result.bill_id,
         "language": target_lang,
-        "headline": translate(result.headline),
-        "key_points": [translate(k) for k in result.key_points],
-        "impact_statement": translate(result.impact_statement),
+        "citizen_summary": translate(result.citizen_summary if is_analysis else result.headline),
+        "key_changes": [translate(k) for k in (result.key_changes if is_analysis else result.key_points)],
+        "rights_impact": translate(result.rights_impact if is_analysis else result.impact_statement),
         "overview": translate(result.overview) if result.overview else None
     }
 

@@ -6,16 +6,16 @@ Owner: AkashSamuel (wired by Akagami)
 """
 
 import uuid
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
 
-from src.shared_schemas import AnalyzeRequest, AnalyzeResponse, BillStatus
+from src.shared_schemas import AnalyzeRequest, AnalyzeResponse, BillStatus, BillDetailResponse
 from src.api.services.real_pipeline import real_run_pipeline, task_store
 
 router = APIRouter()
 
 
 @router.post("/analyze", response_model=AnalyzeResponse, status_code=202)
-async def analyze(request: AnalyzeRequest):
+async def analyze(request: AnalyzeRequest, background_tasks: BackgroundTasks):
     if not request.pdf_url and not request.raw_text:
         raise HTTPException(
             status_code=422,
@@ -23,13 +23,18 @@ async def analyze(request: AnalyzeRequest):
         )
 
     task_id = str(uuid.uuid4())
+    
+    # Initialize task status in store (using correct Pydantic model to avoid 500 error)
+    task_store[task_id] = BillDetailResponse(
+        bill_id=task_id,
+        status=BillStatus.PENDING
+    )
 
-    # v1.0: runs synchronously
-    # v2.0: replace with celery_task.delay(task_id, request.dict())
-    real_run_pipeline(task_id, request)
+    # Run pipeline as a background task to prevent proxy timeouts
+    background_tasks.add_task(real_run_pipeline, task_id, request)
 
     return AnalyzeResponse(
         task_id=task_id,
-        status=BillStatus.COMPLETED,
-        message="Analysis complete. Fetch results at GET /api/v1/bills/{task_id}",
+        status=BillStatus.PENDING,
+        message="Analysis started. Tracking via background polling.",
     )

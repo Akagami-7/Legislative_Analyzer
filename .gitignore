@@ -32,8 +32,4 @@ chroma_db/**
 .cache/
 huggingface/
 
-# Batch output & scraped data
-batch_report.json
-ingested_bills/
-
 

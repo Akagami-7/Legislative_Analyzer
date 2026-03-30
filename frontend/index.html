@@ -1614,27 +1614,36 @@
       $('pill-co2').innerText = carbonText;
 
       // Better scaling (log-like feel)
-      let co2Pct;
-      if (carbon <= 0) {
-        co2Pct = 0;
-      } else {
-        co2Pct = Math.min(100, Math.max(5, Math.log10(carbon * 1000 + 1) * 30));
+      const co2Bar = $('co2-bar');
+      if (co2Bar) {
+        let co2Pct;
+        if (carbon <= 0) {
+          co2Pct = 0;
+        } else {
+          co2Pct = Math.min(100, Math.max(5, Math.log10(carbon * 1000 + 1) * 30));
+        }
+        co2Bar.style.width = co2Pct + '%';
       }
-      $('co2-bar').style.width = co2Pct + '%';
 
-      $('tt-co2').innerText = carbon > 0
-        ? `Compression reduced LLM compute, saving ~${carbon.toFixed(4)} grams of CO₂ emissions.`
-        : 'No measurable carbon savings for this small input.';
+      const ttCo2 = $('tt-co2');
+      if (ttCo2) {
+        ttCo2.innerText = carbon > 0
+          ? `Compression reduced LLM compute, saving ~${carbon.toFixed(4)} grams of CO₂ emissions.`
+          : 'No measurable carbon savings for this small input.';
+      }
 
       // ── Tooltip ──────────────────────────────────────────
-      $('tt-bar').innerText = isExpanded
-        ? `Input expanded from ${o.toLocaleString()} to ${c.toLocaleString()} tokens due to LLM formatting.`
-        : `Reduced from ${o.toLocaleString()} → ${c.toLocaleString()} tokens (${pct}% reduction).`;
+      const ttBar = $('tt-bar');
+      if (ttBar) {
+        ttBar.innerText = isExpanded
+          ? `Input expanded from ${o.toLocaleString()} to ${c.toLocaleString()} tokens due to LLM formatting.`
+          : `Reduced from ${o.toLocaleString()} → ${c.toLocaleString()} tokens (${pct}% reduction).`;
+      }
 
       // ── Animate bars ─────────────────────────────────────
       const usedPct = Math.min(100, (c / o) * 100);
       setTimeout(() => {
-        tokenBarFill.style.width = usedPct + '%';
+        if (tokenBarFill) tokenBarFill.style.width = usedPct + '%';
       }, 300);
     }
 
