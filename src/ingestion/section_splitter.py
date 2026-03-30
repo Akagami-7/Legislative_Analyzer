@@ -52,7 +52,8 @@ def split_sections(pages: list) -> list:
     long_words = len(re.findall(r'\b\w{25,}\b', total_text))
     if long_words > 10:
         print(f"   ⚠️  Found {long_words} words >25 chars (likely space issues)")
-        print(f"   Sample: {re.findall(r'\\b\\w{{25,}}\\b', total_text)[:3]}")
+        matches = re.findall(r'\b\w{25,}\b', total_text)
+        print(f"   Sample: {matches[:3]}")
 
     if avg_len < 100:
         print("❌ ERROR: Extracted text too short. Extraction failed!")
