@@ -84,10 +84,10 @@ def real_run_pipeline(task_id: str, request: AnalyzeRequest) -> None:
     """
     ingested_path = None
     # Mark as processing
-    task_store[task_id] = BillDetailResponse(
-        bill_id=task_id,
-        status=BillStatus.PROCESSING
-    )
+    # task_store[task_id] = BillDetailResponse(  # related to analyze.py 505 error render
+    #     bill_id=task_id,
+    #     status=BillStatus.PROCESSING
+    # )
 
     try:
         # ── Step 1: Get PDF ───────────────────────────────────
