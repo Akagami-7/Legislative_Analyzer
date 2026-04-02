@@ -65,7 +65,7 @@ def list_providers():
     }
 
 
-@router.post("/models/{provider}")
+@router.get("/models/{provider}")
 def get_models_for_provider(
     provider: str,
     request: ModelRequest

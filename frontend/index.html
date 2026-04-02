@@ -1328,10 +1328,15 @@
       }
 
       try {
-        const res = await fetch(`${API}/models/${pid}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ api_key: key })
+        const url = key
+          ? `${API}/models/${pid}?api_key=${encodeURIComponent(key)}`
+          : `${API}/models/${pid}`;
+        const res = await fetch(url, {
+          method: 'GET'
+          // const res = await fetch(`${API}/models/${pid}`, {
+          //   method: 'POST',
+          //   headers: { 'Content-Type': 'application/json' },
+          //   body: JSON.stringify({ api_key: key })
         });
 
         if (!res.ok) {
