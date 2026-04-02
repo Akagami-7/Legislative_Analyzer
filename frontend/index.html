@@ -901,7 +901,7 @@
               <input type="password" id="api-key" placeholder="Enter key..." />
               <button class="input-toggle-btn" tabindex="-1" onclick="togglePass('api-key', this)">Show</button>
             </div>
-            <button type="button" class="btn btn-secondary" id="btn-load-models" onclick="loadModels()">Load
+            <button type="button" class="btn btn-secondary" id="btn-load-models" onclick="loadModels(event)">Load
               Models</button>
           </div>
           <a href="#" id="link-api-key" class="help-link" target="_blank">Get API Key</a>
@@ -1300,7 +1300,9 @@
       else { hide('box-hf-key'); $('err-hf').style.display = 'none'; }
     }
 
-    async function loadModels() {
+    async function loadModels(event) {
+      console.log("LOAD MODELS CLICKED");
+      if (event) event.preventDefault();
       const pid = state.provider;
       const key = $('api-key').value.trim();
 
