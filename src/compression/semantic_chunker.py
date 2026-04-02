@@ -18,7 +18,6 @@ import tiktoken
 
 enc = tiktoken.get_encoding("cl100k_base")
 
-# ── Global model cache — load once, reuse everywhere ─────────────────────────
 _embedding_model = None
 
 def _get_embedding_model():

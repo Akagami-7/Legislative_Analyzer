@@ -27,14 +27,12 @@ enc = tiktoken.get_encoding("cl100k_base")
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 os.environ["TOKENIZERS_PARALLELISM"]   = "false"
 
-# ── ChromaDB persistent storage ───────────────────────────────────────────────
 CHROMA_PATH = "./chroma_db"
 
-# ── Model priority list ───────────────────────────────────────────────────────
 EMBEDDING_MODELS = [
-    "paraphrase-multilingual-mpnet-base-v2",   # primary   — 420MB, best quality
-    "paraphrase-multilingual-MiniLM-L12-v2",   # secondary — 420MB, lighter
-    "intfloat/multilingual-e5-base",            # tertiary  — 560MB, strong multilingual
+    "paraphrase-multilingual-mpnet-base-v2",  
+    "paraphrase-multilingual-MiniLM-L12-v2",   
+    "intfloat/multilingual-e5-base",          
 ]
 
 _embed_model       = None

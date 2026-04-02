@@ -7,7 +7,6 @@ from src.shared_schemas import BillSection
 
 enc = tiktoken.get_encoding("cl100k_base")
 
-# High value legal keywords — sentences containing these get kept
 HIGH_VALUE_TERMS = [
     "shall", "right", "penalty", "fine", "consent", "prohibited",
     "entitled", "obligation", "crore", "offence", "breach",
@@ -21,7 +20,6 @@ def score_sentence(sentence: str) -> float:
     for term in HIGH_VALUE_TERMS:
         if term in sentence_lower:
             score += 1.0
-    # Bonus for sentences with numbers (penalties, dates, limits)
     if re.search(r'\d+', sentence):
         score += 0.5
     return score

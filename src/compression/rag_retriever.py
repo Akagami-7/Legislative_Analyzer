@@ -19,7 +19,6 @@ from src.compression.rag_embedder import (
     _get_collection, CHROMA_PATH
 )
 
-# ── Cross-encoder reranker ────────────────────────────────────────────────────
 _reranker = None
 
 def _get_reranker() -> CrossEncoder:

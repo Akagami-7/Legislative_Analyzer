@@ -48,7 +48,6 @@ def assemble_prompt(bill: IngestedBill,
     lines.append(f"ORIGINAL SIZE: {bill.total_token_count:,} tokens")
     lines.append("=" * 60)
 
-    # Inject RAG context if available
     if rag_context:
         lines.append("\n" + rag_context)
         lines.append("=" * 60)

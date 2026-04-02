@@ -18,13 +18,11 @@ import time
 from typing import Optional
 from src.shared_schemas import CitizenSummary
 
-# ── HuggingFace Inference API ────────────────────────────────────────────────
 HF_API_URL = (
     "https://api-inference.huggingface.co/models/"
     "ai4bharat/indictrans2-en-indic-dist-200M"
 )
 
-# ── Language mapping ─────────────────────────────────────────────────────────
 LANG_MAP = {
     "hi": ("hin_Deva", "Hindi"),
     "te": ("tel_Telu", "Telugu"),
@@ -43,9 +41,6 @@ LANG_MAP = {
 MAX_CHARS = 4500
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# IndicTrans2 (HuggingFace)
-# ─────────────────────────────────────────────────────────────────────────────
 def _translate_indictrans2(text: str, tgt_lang_code: str, hf_token: str) -> Optional[str]:
     if not text or not text.strip():
         return text
@@ -90,10 +85,6 @@ def _translate_indictrans2(text: str, tgt_lang_code: str, hf_token: str) -> Opti
     except Exception:
         return None
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Google Translate fallback
-# ─────────────────────────────────────────────────────────────────────────────
 def _translate_deep(text: str, target_lang: str) -> str:
     from deep_translator import GoogleTranslator
 
@@ -104,7 +95,6 @@ def _translate_deep(text: str, target_lang: str) -> str:
         if len(text) <= MAX_CHARS:
             return GoogleTranslator(source="auto", target=target_lang).translate(text) or text
 
-        # Chunk long text
         sentences = text.replace(". ", ".|").split("|")
         chunks, current = [], ""
 

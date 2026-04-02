@@ -901,7 +901,8 @@
               <input type="password" id="api-key" placeholder="Enter key..." />
               <button class="input-toggle-btn" tabindex="-1" onclick="togglePass('api-key', this)">Show</button>
             </div>
-            <button class="btn btn-secondary" id="btn-load-models" onclick="loadModels()">Load Models</button>
+            <button type="button" class="btn btn-secondary" id="btn-load-models" onclick="loadModels()">Load
+              Models</button>
           </div>
           <a href="#" id="link-api-key" class="help-link" target="_blank">Get API Key</a>
         </div>
@@ -1108,7 +1109,7 @@
   <!-- APPLICATION LOGIC                                               -->
   <!-- ═══════════════════════════════════════════════════════════════ -->
   <script>
-    const API = window.location.hostname === "localhost" ? "http://localhost:8000/api/v1" : "https://legislative-analyzer-ai.onrender.com/api/v1";
+    const API = window.location.origin + '/api/v1';
 
     // ── Application State ───────────────────────────────────────────────────
     const SCALEDOWN_COMPATIBLE = ['gpt', 'claude', 'groq'];

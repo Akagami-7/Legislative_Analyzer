@@ -16,7 +16,6 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 from src.shared_schemas import BillSection
 from typing import List
 
-# ── Civic query for BM25 ─────────────────────────────────────────────────────
 CIVIC_QUERY = [
     "citizen", "rights", "penalty", "fine", "obligation",
     "prohibited", "entitled", "shall", "offence", "consent",
@@ -26,7 +25,6 @@ CIVIC_QUERY = [
     "fundamental", "privacy", "safety", "victim", "justice"
 ]
 
-# ── TF-IDF civic query string ─────────────────────────────────────────────────
 TFIDF_QUERY = (
     "citizen rights penalty fine obligation prohibited entitled "
     "shall offence consent data protection compensation enforcement "
@@ -35,7 +33,6 @@ TFIDF_QUERY = (
     "punishment award damages liable convicted acquitted"
 )
 
-# ── Weights ───────────────────────────────────────────────────────────────────
 BM25_WEIGHT  = 0.6
 TFIDF_WEIGHT = 0.4
 

@@ -28,7 +28,6 @@ def _check_scaledown_support(model_id: str) -> bool:
 
 SUPPORTED_PROVIDERS = ["gemini", "claude", "gpt", "groq", "ollama"]
 
-# ── Available models per provider ─────────────────────────────────────────────
 PROVIDER_MODELS = {
     "gemini": [
         {"id": "gemini-2.0-flash",      "name": "Gemini 2.0 Flash",      "free": True,  "scaledown_support": True},
