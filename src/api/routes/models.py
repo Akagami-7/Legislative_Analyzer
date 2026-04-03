@@ -5,7 +5,7 @@ GET /models/{provider} — fetch available models dynamically
 GET /models/providers   — list all supported providers
 """
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, Request
 from typing import Optional
 from pydantic import BaseModel
 from src.compression.multi_llm_client import (
@@ -65,35 +65,50 @@ def list_providers():
     }
 
 
-@router.get("/models/{provider}")
-def get_models_for_provider(
+@router.api_route("/models/{provider}", methods=["GET", "POST"])
+async def get_models_for_provider(
     provider: str,
-    api_key: Optional[str] = None
+    request: Request,
+    api_key: Optional[str] = Query(default=None)
 ):
-    """
-    Fetch available models for a provider dynamically.
-    Requires API key to call provider's model list endpoint.
-    
-    Example:
-        GET /api/v1/models/groq?api_key=gsk_xxx
-        GET /api/v1/models/gemini?api_key=AIza_xxx
-    """
     print(f"DEBUG: Fetching models for provider: {provider}")
+
     if provider not in SUPPORTED_PROVIDERS:
-        print(f"DEBUG: Unknown provider: {provider}")
         return {
-            "status" : "error",
+            "status": "error",
             "message": f"⚠️ Unknown provider: {provider}. Choose from: {SUPPORTED_PROVIDERS}",
-            "models" : []
+            "models": []
         }
 
     try:
+        # ✅ Handle POST body
+        if request.method == "POST":
+            try:
+                body = await request.json()
+                api_key = body.get("api_key")
+            except Exception:
+                pass
+
+        print(f"DEBUG: API key provided: {'YES' if api_key else 'NO'}")
+        print(f"DEBUG: Calling get_available_models({provider})")
         result = get_available_models(provider, api_key)
-        if result.get("status") == "error":
-            print(f"DEBUG: Result error for {provider}: {result.get('message')}")
+        print(f"DEBUG: Calling get_available_models({provider})")
+
+        if not isinstance(result, dict):
+            return {
+                "status": "error",
+                "message": "Invalid response from provider",
+                "models": []
+            }
+
         return result
+
     except Exception as e:
-        print(f"DEBUG: Unexpected error fetching models for {provider}: {str(e)}")
+        print("DEBUG: Raw result:", result)
         import traceback
         traceback.print_exc()
-        return {"status": "error", "message": f"Unexpected backend error: {str(e)}", "models": []}
+        return {
+            "status": "error",
+            "message": f"Unexpected backend error: {str(e)}",
+            "models": []
+        }
