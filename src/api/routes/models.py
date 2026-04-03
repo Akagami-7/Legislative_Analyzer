@@ -68,13 +68,8 @@ def list_providers():
 @router.get("/models/{provider}")
 def get_models_for_provider(
     provider: str,
-    request: ModelRequest
+    api_key: Optional[str] = None
 ):
-    """
-    Fetch available models for a provider dynamically.
-    Uses POST to keep API keys out of the URL.
-    """
-    api_key = request.api_key
     """
     Fetch available models for a provider dynamically.
     Requires API key to call provider's model list endpoint.
