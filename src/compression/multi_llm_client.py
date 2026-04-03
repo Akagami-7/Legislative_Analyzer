@@ -273,7 +273,7 @@ def _get_groq_models(api_key: Optional[str] = None) -> dict:
             headers={
                 "Authorization": f"Bearer {key}"
             },
-            timeout=8  # 🔥 CRITICAL
+            timeout=5  # 🔥 CRITICAL
         )
         print("DEBUG: Groq responded")
 
@@ -311,7 +311,7 @@ def _get_groq_models(api_key: Optional[str] = None) -> dict:
             "models"  : filtered
         }
 
-    except requests.exceptions.Timeout:
+    except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
         print("DEBUG: Groq timeout — using fallback")
         return {
             "status": "ok",

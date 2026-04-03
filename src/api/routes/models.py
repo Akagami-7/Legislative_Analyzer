@@ -106,10 +106,7 @@ async def get_models_for_provider(
 
     try:
         # ✅ Run blocking function safely (VERY IMPORTANT for Render)
-        result = await asyncio.wait_for(
-            asyncio.to_thread(get_available_models, provider, api_key),
-            timeout=12  # ⏱ keep under Render timeout
-        )
+        result = await asyncio.to_thread(get_available_models, provider, api_key)
 
         if not isinstance(result, dict):
             raise ValueError("Invalid response format from provider")
