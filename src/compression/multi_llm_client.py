@@ -267,20 +267,38 @@ def _get_groq_models(api_key: Optional[str] = None) -> dict:
 
     try:
         client = Groq(api_key=key)
-        models = client.models.list()
+        print("DEBUG: Calling Groq API...")
+        response = requests.get(
+            "https://api.groq.com/openai/v1/models",
+            headers={
+                "Authorization": f"Bearer {key}"
+            },
+            timeout=8  # 🔥 CRITICAL
+        )
+        print("DEBUG: Groq responded")
+
+        if not response.ok:
+            return {
+                "status": "error",
+                "message": f"⚠️ Groq error: {response.status_code}",
+                "models": []
+            }
+
+        models = response.json()
 
         # Filter to text generation models only
         filtered = []
-        for m in models.data:
+        for m in models.get("data", []):
             # Skip whisper, vision-only models
-            if any(skip in m.id.lower() for skip in ["whisper", "vision", "guard"]):
+            mid = m.get("id", "")
+            if any(skip in mid.lower() for skip in ["whisper", "vision", "guard"]):
                 continue
             filtered.append({
-                "id"          : m.id,
-                "name"        : getattr(m, "id", m.id),
+                "id"          : mid,
+                "name"        : mid,
                 "description" : "",
                 "free"        : True,
-                "scaledown_support": _check_scaledown_support(m.id),
+                "scaledown_support": _check_scaledown_support(mid),
                 "status"      : "ok"
             })
 
@@ -293,8 +311,19 @@ def _get_groq_models(api_key: Optional[str] = None) -> dict:
             "models"  : filtered
         }
 
+    except requests.exceptions.Timeout:
+        print("DEBUG: Groq timeout — using fallback")
+        return {
+            "status": "ok",
+            "provider": "groq",
+            "count": len(PROVIDER_MODELS["groq"]),
+            "models": PROVIDER_MODELS["groq"],  # 🔥 fallback
+            "fallback": True
+        }
+
     except Exception as e:
         err = str(e)
+        print("DEBUG ERROR:", err)
         if "401" in err or "invalid" in err.lower():
             return {
                 "status" : "error",
@@ -306,6 +335,7 @@ def _get_groq_models(api_key: Optional[str] = None) -> dict:
             "message": f"⚠️ Groq error: {err[:100]}",
             "models" : []
         }
+    
 
 
 def _get_ollama_models(api_key: Optional[str] = None,
