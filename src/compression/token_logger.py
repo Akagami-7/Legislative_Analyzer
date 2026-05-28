@@ -1,7 +1,6 @@
 import json
 import os
 from datetime import datetime
-from codecarbon import EmissionsTracker
 
 def log_compression(bill_id: str,
                     original_tokens: int,
@@ -59,6 +58,12 @@ def track_pipeline_emissions(bill_id: str,
             analyze_with_gemini, prompt, orig_tokens, comp_tokens
         )
     """
+
+    try:
+        from codecarbon import EmissionsTracker
+    except ImportError:
+        print("⚠️  codecarbon not installed — skipping emissions tracking")
+        return pipeline_fn(*args, **kwargs)
 
     tracker = EmissionsTracker(
         project_name=f"legislative_analyzer_{bill_id}",
