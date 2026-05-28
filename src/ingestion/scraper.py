@@ -108,8 +108,16 @@ def scrape_bill(search_term: str) -> str:
     Accepts direct PDF URL, PRS page URL, or search term.
     """
 
-    # Case 1 — Direct PDF URL
-    if search_term.startswith("http") and search_term.endswith(".pdf"):
+    # ── Normalize search term ──
+    search_term = search_term.strip()
+
+    # Case 1 — Direct PDF URL (robust check for query params)
+    from urllib.parse import urlparse
+    low_search = search_term.lower()
+    parsed_url = urlparse(search_term)
+    
+    # Aggressive check: if it looks like a URL and contains .pdf before the query string
+    if low_search.startswith("http") and (".pdf" in parsed_url.path.lower() or low_search.endswith(".pdf")):
         print(f"🔗 Direct PDF URL detected")
         return _download_pdf(search_term)
 
@@ -250,10 +258,19 @@ def _get_driver():
     options.add_argument("--disable-gpu")
     options.add_argument(f"user-agent={HEADERS['User-Agent']}")
 
-    return webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()),
-        options=options
-    )
+    try:
+        return webdriver.Chrome(
+            service=Service(ChromeDriverManager().install()),
+            options=options
+        )
+    except Exception as e:
+        if "WinError 193" in str(e):
+            raise RuntimeError(
+                "⚠️ Selenium initialization failed ([WinError 193]). "
+                "This usually means the chromedriver binary is corrupted or incompatible. "
+                "Please delete your 'C:\\Users\\<User>\\.wdm' cache and retry."
+            ) from e
+        raise RuntimeError(f"⚠️ Failed to start Chrome driver: {str(e)}") from e
 
 
 def _search_prs_dynamic(search_term: str) -> str:

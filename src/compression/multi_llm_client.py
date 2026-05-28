@@ -11,6 +11,7 @@ import re
 import os
 import json
 import sys
+import requests
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 from src.shared_schemas import AnalysisResult
