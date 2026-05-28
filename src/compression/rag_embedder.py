@@ -14,17 +14,16 @@ import json
 import os
 import sys
 import gc
-import torch
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
-import chromadb
-from sentence_transformers import SentenceTransformer
+from typing import List, Optional
 from typing import List, Optional
 import tiktoken
 
 enc = tiktoken.get_encoding("cl100k_base")
 
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+# Environment settings (moved to functions where possible)
 os.environ["TOKENIZERS_PARALLELISM"]   = "false"
 
 CHROMA_PATH = "./chroma_db"
@@ -38,9 +37,11 @@ EMBEDDING_MODELS = [
 _embed_model       = None
 _loaded_model_name = None
 
-
 def _get_device() -> str:
     """Return best available device."""
+    import torch
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+    
     if torch.cuda.is_available():
         free_vram = (
             torch.cuda.get_device_properties(0).total_memory
@@ -51,18 +52,17 @@ def _get_device() -> str:
     print("   No GPU — using CPU")
     return "cpu"
 
-
-def _get_embed_model() -> SentenceTransformer:
+def _get_embed_model():
     """
-    Load embedding model with fallback chain.
-    Tries primary → secondary → tertiary.
+    Load embedding model with fallback chain lazily.
     """
     global _embed_model, _loaded_model_name
-
+    
     if _embed_model is not None:
         return _embed_model
 
-    device = _get_device()
+    import torch
+    from sentence_transformers import SentenceTransformer
 
     for model_name in EMBEDDING_MODELS:
         try:
@@ -95,6 +95,7 @@ def _get_dynamic_batch_size() -> int:
     """
     Determine optimal batch size based on available VRAM or RAM.
     """
+    import torch
     if torch.cuda.is_available():
         free_vram = (
             torch.cuda.get_device_properties(0).total_memory
@@ -122,8 +123,9 @@ def _get_dynamic_batch_size() -> int:
             return 8
 
 
-def _get_chroma_client() -> chromadb.PersistentClient:
-    """Get persistent ChromaDB client."""
+def _get_chroma_client():
+    """Get persistent ChromaDB client lazily."""
+    import chromadb
     os.makedirs(CHROMA_PATH, exist_ok=True)
     return chromadb.PersistentClient(path=CHROMA_PATH)
 
@@ -234,6 +236,7 @@ def embed_bill(json_path: str) -> int:
 
         while retry_count < 3:
             try:
+                import torch
                 with torch.no_grad():
                     embeddings = model.encode(
                         batch,
@@ -255,6 +258,7 @@ def embed_bill(json_path: str) -> int:
                 break
 
             except RuntimeError as e:
+                import torch
                 if "out of memory" in str(e).lower():
                     retry_count += 1
                     batch_size = max(4, batch_size // 2)

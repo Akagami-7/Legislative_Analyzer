@@ -1,7 +1,14 @@
 import re
 import spacy
 
-nlp = spacy.load("en_core_web_sm")
+_nlp = None
+
+def get_nlp():
+    global _nlp
+    if _nlp is None:
+        print("   🧠 Loading spaCy model (en_core_web_sm)...")
+        _nlp = spacy.load("en_core_web_sm")
+    return _nlp
 
 INDIAN_STATES = {
     "Delhi", "Mumbai", "Karnataka", "Kerala", "Tamil Nadu",
@@ -96,6 +103,7 @@ def extract_entities(sections: list) -> dict:
             result["punishments"].append(_clean(match))
 
         # States via spaCy
+        nlp = get_nlp()
         doc = nlp(text[:10000])
         for ent in doc.ents:
             if ent.label_ == "GPE" and ent.text in INDIAN_STATES:
